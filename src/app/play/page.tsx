@@ -35,14 +35,17 @@ export default function PlayPage() {
   if (!hasAccount) return null;
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-bg">
-      <HUD progress={progress} attempts={attempts} />
+    <div className="h-dvh w-dvw overflow-hidden bg-bg">
       <GameCanvas
         onWin={handleWin}
         onDeath={handleDeath}
         onProgress={handleProgress}
       />
-      <p className="mt-4 text-xs text-text-muted">
+      {/* HUD overlaid on top */}
+      <div className="pointer-events-none fixed left-0 right-0 top-0 z-10 p-4">
+        <HUD progress={progress} attempts={attempts} />
+      </div>
+      <p className="pointer-events-none fixed bottom-4 left-0 right-0 z-10 text-center text-xs text-text-muted">
         Press SPACE or tap to jump
       </p>
     </div>

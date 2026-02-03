@@ -1,5 +1,6 @@
 export class InputManager {
-  private pressed = false;
+  private justPressed = false;
+  private held = false;
   private canvas: HTMLCanvasElement;
 
   private onKeyDown: (e: KeyboardEvent) => void;
@@ -15,31 +16,40 @@ export class InputManager {
     this.onKeyDown = (e: KeyboardEvent) => {
       if (e.code === "Space" || e.code === "ArrowUp") {
         e.preventDefault();
-        this.pressed = true;
+        if (!e.repeat && !this.held) {
+          this.justPressed = true;
+        }
+        this.held = true;
       }
     };
 
     this.onKeyUp = (e: KeyboardEvent) => {
       if (e.code === "Space" || e.code === "ArrowUp") {
-        this.pressed = false;
+        this.held = false;
       }
     };
 
     this.onMouseDown = () => {
-      this.pressed = true;
+      if (!this.held) {
+        this.justPressed = true;
+      }
+      this.held = true;
     };
 
     this.onMouseUp = () => {
-      this.pressed = false;
+      this.held = false;
     };
 
     this.onTouchStart = (e: TouchEvent) => {
       e.preventDefault();
-      this.pressed = true;
+      if (!this.held) {
+        this.justPressed = true;
+      }
+      this.held = true;
     };
 
     this.onTouchEnd = () => {
-      this.pressed = false;
+      this.held = false;
     };
   }
 
@@ -52,13 +62,9 @@ export class InputManager {
     this.canvas.addEventListener("touchend", this.onTouchEnd);
   }
 
-  isPressed(): boolean {
-    return this.pressed;
-  }
-
   consumePress(): boolean {
-    if (this.pressed) {
-      this.pressed = false;
+    if (this.justPressed) {
+      this.justPressed = false;
       return true;
     }
     return false;

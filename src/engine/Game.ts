@@ -7,7 +7,7 @@ import { CollisionDetector } from "./CollisionDetector";
 import { AudioManager } from "./AudioManager";
 import { ParticleSystem } from "./ParticleSystem";
 import { Player } from "@/entities/Player";
-import { SCROLL_SPEED, GROUND_Y, PLAYER_SIZE, CANVAS_HEIGHT } from "@/lib/constants";
+import { SCROLL_SPEED, PLAYER_SIZE, CANVAS_HEIGHT, GROUND_Y, setCanvasSize } from "@/lib/constants";
 import type { GameState } from "@/lib/constants";
 import level1 from "@/levels/level1.json";
 
@@ -43,11 +43,25 @@ export class Game {
   private levelEnd = 0;
   private deathFlash = 0;
   private deathPauseTimer = 0;
+  private lastReportedProgress = 0;
+
+  // Pipe animation state
+  private pipeAnimTimer = 0;
+  private pipeAnimDuration = 90; // ~1.5 seconds at 60fps
+  private pipeX = 0;
+  private winFlash = 0;
+
+  // Jump buffering — remembers press for several frames so it fires on landing
+  private jumpBufferTimer = 0;
+  private readonly JUMP_BUFFER_FRAMES = 6; // ~100ms at 60fps
 
   constructor(canvas: HTMLCanvasElement, callbacks: GameCallbacks) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d")!;
     this.callbacks = callbacks;
+
+    // Set canvas dimensions before creating subsystems
+    setCanvasSize(canvas.width, canvas.height);
 
     this.input = new InputManager(canvas);
     this.physics = new Physics();
@@ -77,17 +91,42 @@ export class Game {
   private loadLevel(): void {
     this.entities = level1.entities as LevelEntity[];
 
-    // Find level end (portal position)
+    // Find level end (pipe or portal position)
+    const pipe = this.entities.find((e) => e.type === "pipe");
     const portal = this.entities.find((e) => e.type === "portal");
-    this.levelEnd = portal ? portal.x : 3000;
+    this.levelEnd = pipe ? pipe.x : portal ? portal.x : 3000;
   }
 
   private update(_dt: number): void {
-    // Death pause
+    // Pipe entrance animation
+    if (this.state === "entering_pipe") {
+      this.pipeAnimTimer++;
+      const progress = this.pipeAnimTimer / this.pipeAnimDuration;
+
+      // Start fading to white in the last 30%
+      if (progress > 0.7) {
+        this.winFlash = (progress - 0.7) / 0.3;
+      }
+
+      if (this.pipeAnimTimer >= this.pipeAnimDuration) {
+        this.win();
+      }
+      return;
+    }
+
+    // Death pause — count down, then reset to idle
     if (this.deathPauseTimer > 0) {
       this.deathPauseTimer--;
       this.deathFlash = Math.max(0, this.deathFlash - 0.05);
       this.particles.update();
+      if (this.deathPauseTimer === 0) {
+        this.player.reset();
+        this.camera.reset();
+        this.particles.clear();
+        this.physics.resetCoyote();
+        this.jumpBufferTimer = 0;
+        this.state = "idle";
+      }
       return;
     }
 
@@ -103,16 +142,24 @@ export class Game {
 
     if (this.state !== "playing") return;
 
-    // Handle jump input
+    // Handle jump input with buffering
     if (this.input.consumePress()) {
-      this.physics.jump(this.player);
+      this.jumpBufferTimer = this.JUMP_BUFFER_FRAMES;
+    }
+
+    if (this.jumpBufferTimer > 0) {
+      if (this.physics.jump(this.player)) {
+        this.jumpBufferTimer = 0; // Jump succeeded, clear buffer
+      } else {
+        this.jumpBufferTimer--; // Try again next frame
+      }
     }
 
     // Move player forward in world space
     this.player.worldX += SCROLL_SPEED;
 
-    // Apply gravity
-    this.physics.applyGravity(this.player);
+    // Apply gravity (gap-aware)
+    this.physics.applyGravity(this.player, this.entities);
 
     // Check platform landings
     for (const entity of this.entities) {
@@ -154,29 +201,36 @@ export class Game {
       if (entity.type === "portal") {
         const portalAABB = this.collision.getPortalAABB(screenX);
         if (this.collision.checkAABB(playerAABB, portalAABB)) {
-          this.win();
+          this.enterPipe(entity.x);
+          return;
+        }
+      }
+
+      if (entity.type === "pipe") {
+        // Pipe hitbox — wider and taller than portal
+        const pipeAABB = { x: screenX, y: GROUND_Y - 120, width: 80, height: 120 };
+        if (this.collision.checkAABB(playerAABB, pipeAABB)) {
+          this.enterPipe(entity.x);
           return;
         }
       }
     }
 
-    // Check if player fell into gap
-    if (this.collision.isInGap(this.player.worldX, this.entities)) {
-      // Player falls if no ground beneath them
-      if (this.player.y + PLAYER_SIZE > CANVAS_HEIGHT + 50) {
-        this.die();
-        return;
-      }
-      // Allow falling by not clamping to ground
-      this.player.onGround = false;
+    // Check if player fell off screen
+    if (this.player.y + PLAYER_SIZE > CANVAS_HEIGHT + 50) {
+      this.die();
+      return;
     }
 
     // Update particles
     this.particles.update();
 
-    // Report progress
+    // Report progress (throttled)
     const progress = this.player.worldX / this.levelEnd;
-    this.callbacks.onProgress(progress);
+    if (Math.abs(progress - this.lastReportedProgress) > 0.01) {
+      this.lastReportedProgress = progress;
+      this.callbacks.onProgress(progress);
+    }
   }
 
   private render(): void {
@@ -185,7 +239,13 @@ export class Game {
     this.renderer.drawGround(this.camera, this.entities);
     this.renderer.drawEntities(this.camera, this.entities);
 
-    if (this.state !== "idle") {
+    if (this.state === "entering_pipe") {
+      // Draw the pipe animation — player shrinking into pipe
+      const progress = this.pipeAnimTimer / this.pipeAnimDuration;
+      const pipeScreenX = this.camera.worldToScreen(this.pipeX);
+      this.renderer.drawPipeAnimation(this.player, pipeScreenX, progress);
+      this.renderer.drawWinFlash(this.winFlash);
+    } else if (this.state !== "idle") {
       this.renderer.drawTrail(this.player.trail);
       this.renderer.drawPlayer(this.player);
     }
@@ -198,12 +258,18 @@ export class Game {
     }
   }
 
+  private enterPipe(pipeWorldX: number): void {
+    this.state = "entering_pipe";
+    this.pipeX = pipeWorldX;
+    this.pipeAnimTimer = 0;
+    this.winFlash = 0;
+  }
+
   private die(): void {
     this.state = "dead";
     this.deathFlash = 0.4;
-    this.deathPauseTimer = 40; // ~0.66 seconds pause
+    this.deathPauseTimer = 45;
 
-    // Burst particles at player position
     this.particles.burst(
       this.player.x + PLAYER_SIZE / 2,
       this.player.y + PLAYER_SIZE / 2,
@@ -212,14 +278,6 @@ export class Game {
 
     this.audio.stop();
     this.callbacks.onDeath();
-
-    // Reset after pause
-    setTimeout(() => {
-      this.player.reset();
-      this.camera.reset();
-      this.particles.clear();
-      this.state = "idle";
-    }, 700);
   }
 
   private win(): void {

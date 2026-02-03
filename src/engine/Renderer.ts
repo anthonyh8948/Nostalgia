@@ -126,6 +126,76 @@ export class Renderer {
     this.ctx.fillRect(screenX + 4, portalY + 4, width - 8, height - 8);
   }
 
+  drawPipe(screenX: number, groundY: number): void {
+    const pipeWidth = 80;
+    const pipeHeight = 120;
+    const pipeY = groundY - pipeHeight;
+    const centerX = screenX + pipeWidth / 2;
+    const centerY = pipeY + pipeHeight / 2;
+    const outerR = pipeWidth / 2 - 8;
+
+    // Outer glow
+    this.ctx.shadowColor = COLORS.portalGlow;
+    this.ctx.shadowBlur = 30;
+
+    // Pipe body
+    this.ctx.fillStyle = "#1a0a1a";
+    this.ctx.beginPath();
+    this.ctx.roundRect(screenX, pipeY, pipeWidth, pipeHeight, 12);
+    this.ctx.fill();
+
+    // Pipe rim
+    this.ctx.strokeStyle = COLORS.portal;
+    this.ctx.lineWidth = 3;
+    this.ctx.beginPath();
+    this.ctx.roundRect(screenX, pipeY, pipeWidth, pipeHeight, 12);
+    this.ctx.stroke();
+
+    this.ctx.shadowBlur = 0;
+
+    // Inner circular opening
+    this.ctx.fillStyle = "#050505";
+    this.ctx.beginPath();
+    this.ctx.ellipse(centerX, centerY, outerR, outerR, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // Inner glow ring
+    this.ctx.strokeStyle = "rgba(255, 20, 147, 0.6)";
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.ellipse(centerX, centerY, outerR, outerR, 0, 0, Math.PI * 2);
+    this.ctx.stroke();
+  }
+
+  drawPipeAnimation(player: Player, pipeScreenX: number, progress: number): void {
+    const pipeWidth = 80;
+    const pipeHeight = 120;
+    const pipeCenterX = pipeScreenX + pipeWidth / 2;
+    const pipeCenterY = (GROUND_Y - pipeHeight) + pipeHeight / 2;
+
+    // Player shrinks and slides toward pipe center
+    const scale = 1 - progress * 0.9;
+    const px = player.x + (pipeCenterX - player.x) * progress;
+    const py = player.y + (pipeCenterY - player.y) * progress;
+    const size = PLAYER_SIZE * scale;
+
+    this.ctx.globalAlpha = 1 - progress * 0.6;
+    this.ctx.shadowColor = COLORS.playerGlow;
+    this.ctx.shadowBlur = 20 * (1 - progress);
+    this.ctx.fillStyle = COLORS.player;
+    this.ctx.fillRect(px - size / 2, py - size / 2, size, size);
+    this.ctx.shadowBlur = 0;
+    this.ctx.globalAlpha = 1;
+  }
+
+  drawWinFlash(progress: number): void {
+    if (progress <= 0) return;
+    this.ctx.globalAlpha = progress;
+    this.ctx.fillStyle = "#ffffff";
+    this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    this.ctx.globalAlpha = 1;
+  }
+
   drawEntities(camera: Camera, entities: LevelEntity[]): void {
     for (const entity of entities) {
       const screenX = camera.worldToScreen(entity.x);
@@ -139,10 +209,13 @@ export class Renderer {
           this.drawSpike(screenX, GROUND_Y);
           break;
         case "platform":
-          this.drawPlatform(screenX, entity.y || 280, entity.width || 100);
+          this.drawPlatform(screenX, GROUND_Y - (entity.y || 80), entity.width || 100);
           break;
         case "portal":
           this.drawPortal(screenX, GROUND_Y);
+          break;
+        case "pipe":
+          this.drawPipe(screenX, GROUND_Y);
           break;
       }
     }
@@ -169,7 +242,7 @@ export class Renderer {
   drawDeathFlash(alpha: number): void {
     if (alpha <= 0) return;
     this.ctx.globalAlpha = alpha;
-    this.ctx.fillStyle = "#ff3366";
+    this.ctx.fillStyle = "#e040fb";
     this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     this.ctx.globalAlpha = 1;
   }

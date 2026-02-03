@@ -7,6 +7,8 @@ import { COUPON_CODE } from "@/lib/constants";
 export default function WinPage() {
   const [copied, setCopied] = useState(false);
   const [userName, setUserName] = useState("");
+  const [show, setShow] = useState(false);
+  const [showContent, setShowContent] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem("nostalgia_user");
@@ -14,6 +16,10 @@ export default function WinPage() {
       const parsed = JSON.parse(userData);
       setUserName(parsed.firstName || "");
     }
+    // Stagger the animations
+    requestAnimationFrame(() => setShow(true));
+    const timer = setTimeout(() => setShowContent(true), 800);
+    return () => clearTimeout(timer);
   }, []);
 
   const copyCode = async () => {
@@ -23,7 +29,7 @@ export default function WinPage() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center px-6">
+    <div className="flex min-h-dvh flex-col items-center justify-center overflow-hidden px-6">
       <div
         className="pointer-events-none fixed inset-0"
         style={{
@@ -34,34 +40,68 @@ export default function WinPage() {
       />
 
       <div className="relative z-10 text-center">
-        <div className="text-5xl">&#127881;</div>
-        <h1 className="mt-6 text-4xl font-bold tracking-tight text-text sm:text-5xl">
-          {userName ? `${userName}, You Won!` : "You Won!"}
+        {/* Animated congratulations text */}
+        <h1
+          className="text-5xl font-bold tracking-tight text-text transition-all duration-1000 sm:text-7xl"
+          style={{
+            opacity: show ? 1 : 0,
+            transform: show ? "translateY(0) scale(1)" : "translateY(40px) scale(0.8)",
+          }}
+        >
+          Congratulations{userName ? `, ${userName}` : ""}!
         </h1>
-        <p className="mt-4 text-lg text-text-muted">
-          Here&apos;s your exclusive discount code for concert tickets
+
+        <p
+          className="mt-2 text-2xl font-semibold tracking-tight text-neon transition-all duration-700 delay-500"
+          style={{
+            opacity: show ? 1 : 0,
+            transform: show ? "translateY(0)" : "translateY(20px)",
+          }}
+        >
+          You won!
         </p>
 
-        <button
-          onClick={copyCode}
-          className="mt-10 inline-flex items-center gap-3 rounded-lg border border-neon bg-bg-surface px-8 py-4 font-mono text-2xl font-bold tracking-[0.15em] text-neon transition-all hover:bg-neon hover:text-bg"
+        {/* Content fades in after the title */}
+        <div
+          className="transition-all duration-700"
+          style={{
+            opacity: showContent ? 1 : 0,
+            transform: showContent ? "translateY(0)" : "translateY(30px)",
+          }}
         >
-          {COUPON_CODE}
-          <span className="text-sm font-normal">
-            {copied ? "Copied!" : "Click to copy"}
-          </span>
-        </button>
+          <p className="mt-8 text-lg text-text-muted">
+            Here&apos;s your exclusive discount code for concert tickets
+          </p>
 
-        <p className="mt-6 text-sm text-text-muted">
-          Use this code at checkout for discounted tickets
-        </p>
+          <button
+            onClick={copyCode}
+            className="mt-8 inline-flex items-center gap-3 rounded-lg border border-neon bg-bg-surface px-8 py-4 font-mono text-2xl font-bold tracking-[0.15em] text-neon transition-all hover:bg-neon hover:text-bg hover:shadow-[0_0_30px_rgba(0,229,255,0.3)]"
+          >
+            {COUPON_CODE}
+            <span className="text-sm font-normal">
+              {copied ? "Copied!" : "Click to copy"}
+            </span>
+          </button>
 
-        <Link
-          href="/"
-          className="mt-10 inline-block text-sm text-text-muted underline underline-offset-4 transition-colors hover:text-neon"
-        >
-          Back to home
-        </Link>
+          <p className="mt-6 text-sm text-text-muted">
+            Use this code at checkout for discounted tickets
+          </p>
+
+          <div className="mt-10 flex items-center justify-center gap-6">
+            <Link
+              href="/play"
+              className="text-sm font-medium text-neon underline underline-offset-4 transition-colors hover:text-text"
+            >
+              Play again
+            </Link>
+            <Link
+              href="/"
+              className="text-sm text-text-muted underline underline-offset-4 transition-colors hover:text-neon"
+            >
+              Back to home
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

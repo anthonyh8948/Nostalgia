@@ -3,34 +3,39 @@ export const GRAVITY = 0.8;
 export const JUMP_VELOCITY = -12;
 export const SCROLL_SPEED = 8;
 export const PLAYER_SIZE = 40;
-export const GROUND_Y = 360; // ground surface Y position (from top)
+// Canvas — mutable, set by Game from actual canvas size
+export let CANVAS_WIDTH = 1120;
+export let CANVAS_HEIGHT = 630;
+export let GROUND_Y = 504;
 
-// Canvas
-export const CANVAS_WIDTH = 800;
-export const CANVAS_HEIGHT = 450;
+export function setCanvasSize(w: number, h: number) {
+  CANVAS_WIDTH = w;
+  CANVAS_HEIGHT = h;
+  GROUND_Y = Math.floor(h * 0.8);
+}
 
-// Colors
+// Colors — hot pink / purple / magenta with yellow player
 export const COLORS = {
   bg: "#0a0a0a",
-  ground: "#1a1a1a",
-  groundLine: "#222222",
-  player: "#00e5ff",
-  playerGlow: "rgba(0, 229, 255, 0.4)",
-  spike: "#f5f5f5",
-  platform: "#333333",
-  portal: "#00ff88",
-  portalGlow: "rgba(0, 255, 136, 0.4)",
-  particle: "#00e5ff",
-  trail: "rgba(0, 229, 255, 0.15)",
-  gridLine: "rgba(255, 255, 255, 0.03)",
-  progressBg: "#1a1a1a",
-  progressFill: "#00e5ff",
+  ground: "#1a0a1a",
+  groundLine: "#ff1493",
+  player: "#ffe600",
+  playerGlow: "rgba(255, 230, 0, 0.5)",
+  spike: "#e040fb",
+  platform: "#2a0a2a",
+  portal: "#ff1493",
+  portalGlow: "rgba(255, 20, 147, 0.5)",
+  particle: "#ffe600",
+  trail: "rgba(255, 230, 0, 0.15)",
+  gridLine: "rgba(180, 0, 180, 0.06)",
+  progressBg: "#1a0a1a",
+  progressFill: "#ff1493",
   text: "#f5f5f5",
   textMuted: "#888888",
 } as const;
 
 // Game states
-export type GameState = "idle" | "playing" | "dead" | "won";
+export type GameState = "idle" | "playing" | "dead" | "entering_pipe" | "won";
 
 // Coupon code (placeholder)
 export const COUPON_CODE = "NOSTALGIA500";

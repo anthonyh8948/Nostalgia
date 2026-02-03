@@ -7,7 +7,7 @@ interface HUDProps {
 
 export function HUD({ progress, attempts }: HUDProps) {
   return (
-    <div className="mb-4 flex w-full max-w-[800px] items-center gap-4 px-4">
+    <div className="flex w-full items-center gap-4">
       {/* Progress bar */}
       <div className="h-2 flex-1 overflow-hidden rounded-full bg-bg-surface">
         <div
