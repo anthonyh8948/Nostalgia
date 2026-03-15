@@ -234,17 +234,40 @@
     { "type": "ground", "x": 50920, "width": 800 },
     { "type": "spike", "x": 51100 },
     { "type": "spike", "x": 51400 },
+    { "type": "spike", "x": 51680 },
 
-    { "type": "ground", "x": 51920, "width": 1000 },
-    { "type": "spike", "x": 52100 },
-    { "type": "spike", "x": 52400 },
-    { "type": "spike", "x": 52700 },
+    { "type": "platform", "x": 51800, "y": 65, "width": 200 },
+    { "type": "platform", "x": 52080, "y": 130, "width": 200 },
+    { "type": "platform", "x": 52360, "y": 195, "width": 200 },
+    { "type": "platform", "x": 52640, "y": 250, "width": 200 },
+    { "type": "platform", "x": 52920, "y": 285, "width": 220 },
 
-    { "type": "ground", "x": 53120, "width": 2000 },
-    { "type": "spike", "x": 53300 },
-    { "type": "spike", "x": 53600 },
-    { "type": "spike", "x": 53900 },
+    { "type": "platform", "x": 53140, "y": 285, "width": 600 },
+    { "type": "platform", "x": 53860, "y": 285, "width": 600 },
+    { "type": "platform", "x": 54580, "y": 285, "width": 600 },
+    { "type": "platform", "x": 55300, "y": 285, "width": 600 },
+    { "type": "platform", "x": 56020, "y": 285, "width": 600 },
+    { "type": "platform", "x": 56740, "y": 285, "width": 600 },
+    { "type": "platform", "x": 57460, "y": 285, "width": 600 },
+    { "type": "peach",    "x": 57700, "y": 305 },
+    { "type": "platform", "x": 58180, "y": 285, "width": 600 },
+    { "type": "platform", "x": 58900, "y": 285, "width": 600 },
+    { "type": "platform", "x": 59620, "y": 285, "width": 600 },
+    { "type": "platform", "x": 60340, "y": 285, "width": 600 },
+    { "type": "platform", "x": 61060, "y": 285, "width": 600 },
+    { "type": "platform", "x": 61780, "y": 285, "width": 600 },
 
-    { "type": "pipe", "x": 54800 }
+    { "type": "platform", "x": 62440, "y": 245, "width": 220 },
+    { "type": "platform", "x": 62680, "y": 190, "width": 220 },
+    { "type": "platform", "x": 62920, "y": 130, "width": 220 },
+    { "type": "platform", "x": 63160, "y": 65,  "width": 220 },
+
+    { "type": "ground", "x": 63480, "width": 1600 },
+    { "type": "spike", "x": 63650 },
+    { "type": "spike", "x": 63950 },
+    { "type": "spike", "x": 64250 },
+    { "type": "spike", "x": 64550 },
+
+    { "type": "pipe", "x": 64800 }
   ]
 }
