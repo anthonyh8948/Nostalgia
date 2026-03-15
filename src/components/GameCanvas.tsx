@@ -1,76 +1,86 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useImperativeHandle, forwardRef } from "react";
 import { Game } from "@/engine/Game";
+
+export interface GameHandle {
+  start: () => void;
+}
 
 interface GameCanvasProps {
   onWin: () => void;
   onDeath: () => void;
   onProgress: (progress: number) => void;
   onPeachCollect: (count: number, total: number) => void;
+  onIdle?: () => void;
   isPaused: boolean;
 }
 
-export function GameCanvas({ onWin, onDeath, onProgress, onPeachCollect, isPaused }: GameCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const gameRef = useRef<Game | null>(null);
-  const [size, setSize] = useState({ w: 1120, h: 630 });
+export const GameCanvas = forwardRef<GameHandle, GameCanvasProps>(
+  function GameCanvas({ onWin, onDeath, onProgress, onPeachCollect, onIdle, isPaused }, ref) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const gameRef = useRef<Game | null>(null);
+    const [size, setSize] = useState({ w: 1120, h: 630 });
 
-  const callbacksRef = useRef({ onWin, onDeath, onProgress, onPeachCollect });
-  callbacksRef.current = { onWin, onDeath, onProgress, onPeachCollect };
+    const callbacksRef = useRef({ onWin, onDeath, onProgress, onPeachCollect, onIdle });
+    callbacksRef.current = { onWin, onDeath, onProgress, onPeachCollect, onIdle };
 
-  // Resize canvas to fill window
-  useEffect(() => {
-    const updateSize = () => {
-      setSize({ w: window.innerWidth, h: window.innerHeight });
-    };
-    updateSize();
-    window.addEventListener("resize", updateSize);
-    return () => window.removeEventListener("resize", updateSize);
-  }, []);
+    useImperativeHandle(ref, () => ({
+      start: () => gameRef.current?.start(),
+    }));
 
-  // Pause / resume
-  useEffect(() => {
-    if (!gameRef.current) return;
-    if (isPaused) gameRef.current.pause();
-    else gameRef.current.resume();
-  }, [isPaused]);
+    // Resize canvas to fill window
+    useEffect(() => {
+      const updateSize = () => {
+        setSize({ w: window.innerWidth, h: window.innerHeight });
+      };
+      updateSize();
+      window.addEventListener("resize", updateSize);
+      return () => window.removeEventListener("resize", updateSize);
+    }, []);
 
-  // Init game once, and reinit when size changes
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    // Pause / resume
+    useEffect(() => {
+      if (!gameRef.current) return;
+      if (isPaused) gameRef.current.pause();
+      else gameRef.current.resume();
+    }, [isPaused]);
 
-    // Update the canvas resolution
-    canvas.width = size.w;
-    canvas.height = size.h;
+    // Init game once, and reinit when size changes
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    // Destroy previous game if exists
-    if (gameRef.current) {
-      gameRef.current.destroy();
-    }
+      canvas.width = size.w;
+      canvas.height = size.h;
 
-    const game = new Game(canvas, {
-      onWin: () => callbacksRef.current.onWin(),
-      onDeath: () => callbacksRef.current.onDeath(),
-      onProgress: (p) => callbacksRef.current.onProgress(p),
-      onPeachCollect: (count, total) => callbacksRef.current.onPeachCollect(count, total),
-    });
+      if (gameRef.current) {
+        gameRef.current.destroy();
+      }
 
-    gameRef.current = game;
-    game.init();
+      const game = new Game(canvas, {
+        onWin: () => callbacksRef.current.onWin(),
+        onDeath: () => callbacksRef.current.onDeath(),
+        onProgress: (p) => callbacksRef.current.onProgress(p),
+        onPeachCollect: (count, total) => callbacksRef.current.onPeachCollect(count, total),
+        onIdle: () => callbacksRef.current.onIdle?.(),
+      });
 
-    return () => {
-      game.destroy();
-    };
-  }, [size]);
+      gameRef.current = game;
+      game.init();
 
-  return (
-    <canvas
-      ref={canvasRef}
-      width={size.w}
-      height={size.h}
-      className="fixed inset-0"
-    />
-  );
-}
+      return () => {
+        game.destroy();
+      };
+    }, [size]);
+
+    return (
+      <canvas
+        ref={canvasRef}
+        width={size.w}
+        height={size.h}
+        className="fixed inset-0"
+      />
+    );
+  }
+);

@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { GameCanvas } from "@/components/GameCanvas";
+import { GameCanvas, type GameHandle } from "@/components/GameCanvas";
 import { HUD } from "@/components/HUD";
 
 export default function PlayPage() {
   const router = useRouter();
+  const gameRef = useRef<GameHandle>(null);
   const [hasAccount, setHasAccount] = useState(false);
   const [progress, setProgress] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [peachCount, setPeachCount] = useState(0);
   const [totalPeaches, setTotalPeaches] = useState(5);
+  const [isIdle, setIsIdle] = useState(false);
 
   const handlePeachCollect = (count: number, total: number) => {
     setPeachCount(count);
@@ -31,16 +33,26 @@ export default function PlayPage() {
   const handleWin = () => router.push("/win");
   const handleDeath = () => setAttempts((a) => a + 1);
   const handleProgress = (p: number) => setProgress(p);
+  const handleIdle = () => setIsIdle(true);
+  const handleIdleEnd = () => setIsIdle(false);
+
+  const handleDontShowAgain = () => {
+    localStorage.setItem("nostalgia_skip_prompt", "1");
+    handleIdleEnd();
+    gameRef.current?.start();
+  };
 
   if (!hasAccount) return null;
 
   return (
     <div className="h-dvh w-dvw overflow-hidden bg-bg">
       <GameCanvas
+        ref={gameRef}
         onWin={handleWin}
         onDeath={handleDeath}
         onProgress={handleProgress}
         onPeachCollect={handlePeachCollect}
+        onIdle={handleIdle}
         isPaused={isPaused}
       />
 
@@ -48,6 +60,17 @@ export default function PlayPage() {
       <div className="pointer-events-none fixed left-0 right-0 top-0 z-10 p-4">
         <HUD progress={progress} attempts={attempts} peachCount={peachCount} totalPeaches={totalPeaches} />
       </div>
+
+      {/* "Don't show again" button — shown when game is in idle/prompt state */}
+      {isIdle && (
+        <button
+          onClick={handleDontShowAgain}
+          className="fixed left-1/2 z-10 -translate-x-1/2 text-xs text-text-muted transition-colors hover:text-text"
+          style={{ top: "calc(50% + 56px)" }}
+        >
+          Don&apos;t show me again
+        </button>
+      )}
 
       {/* Pause button */}
       <button

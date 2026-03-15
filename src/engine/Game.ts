@@ -23,6 +23,7 @@ interface GameCallbacks {
   onDeath: () => void;
   onProgress: (progress: number) => void;
   onPeachCollect: (count: number, total: number) => void;
+  onIdle?: () => void;
 }
 
 export class Game {
@@ -92,7 +93,7 @@ export class Game {
     await this.audio.load(level1.audioSrc);
 
     this.loop.start();
-    this.state = "idle";
+    this.enterIdle();
   }
 
   private loadLevel(): void {
@@ -140,8 +141,7 @@ export class Game {
         this.jumpBufferTimer = 0;
         this.collectedPeaches.clear();
         this.callbacks.onPeachCollect(0, this.totalPeaches);
-        this.state = "playing";
-        this.audio.play();
+        this.enterIdle();
       }
       return;
     }
@@ -331,6 +331,23 @@ export class Game {
     this.audio.stop();
     this.loop.stop();
     this.callbacks.onWin();
+  }
+
+  private enterIdle(): void {
+    const skip = typeof localStorage !== "undefined" && localStorage.getItem("nostalgia_skip_prompt");
+    if (skip) {
+      this.state = "playing";
+      this.audio.play();
+      return;
+    }
+    this.state = "idle";
+    this.callbacks.onIdle?.();
+  }
+
+  start(): void {
+    if (this.state !== "idle") return;
+    this.state = "playing";
+    this.audio.play();
   }
 
   pause(): void {
