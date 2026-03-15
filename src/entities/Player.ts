@@ -1,4 +1,4 @@
-import { PLAYER_SIZE, GROUND_Y } from "@/lib/constants";
+import { PLAYER_SIZE, GROUND_Y, CANVAS_WIDTH } from "@/lib/constants";
 import type { PhysicsBody } from "@/engine/Physics";
 
 export class Player implements PhysicsBody {
@@ -12,7 +12,7 @@ export class Player implements PhysicsBody {
   trail: { x: number; y: number; alpha: number }[] = [];
 
   constructor() {
-    this.x = 200; // screen X position (stays fixed)
+    this.x = Math.round(CANVAS_WIDTH * 0.25);
     this.y = GROUND_Y - PLAYER_SIZE;
     this.worldX = 0;
   }
@@ -29,6 +29,7 @@ export class Player implements PhysicsBody {
   }
 
   reset(): void {
+    this.x = Math.round(CANVAS_WIDTH * 0.25);
     this.y = GROUND_Y - PLAYER_SIZE;
     this.vy = 0;
     this.onGround = true;

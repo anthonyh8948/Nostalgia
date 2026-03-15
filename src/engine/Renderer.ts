@@ -335,11 +335,4 @@ export class Renderer {
     this.ctx.globalAlpha = 1;
   }
 
-  drawStartMessage(): void {
-    this.ctx.fillStyle = COLORS.text;
-    this.ctx.font = "bold 24px var(--font-geist), system-ui, sans-serif";
-    this.ctx.textAlign = "center";
-    this.ctx.fillText("TAP or SPACE to start", CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2);
-    this.ctx.textAlign = "left";
-  }
 }

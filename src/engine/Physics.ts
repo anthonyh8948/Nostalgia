@@ -78,7 +78,7 @@ export class Physics {
       playerRight > relPlatX &&
       playerLeft < relPlatX + platWidth &&
       playerBottom >= platSurfaceY &&
-      playerBottom <= platSurfaceY + 10 &&
+      playerBottom <= platSurfaceY + Math.abs(body.vy) + 15 &&
       body.vy >= 0
     ) {
       body.y = platSurfaceY - PLAYER_SIZE;

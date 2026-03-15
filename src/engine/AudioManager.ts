@@ -36,15 +36,12 @@ export class AudioManager {
 
     this.source = this.ctx.createBufferSource();
     this.source.buffer = this.buffer;
+    this.source.loop = true;
     this.source.connect(this.gainNode);
     this.source.start(0, this.pauseOffset);
     this.startedAt = this.ctx.currentTime - this.pauseOffset;
     this.pauseOffset = 0;
     this.playing = true;
-
-    this.source.onended = () => {
-      this.playing = false;
-    };
   }
 
   stop(): void {

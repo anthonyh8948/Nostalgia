@@ -48,6 +48,7 @@ export class Game {
 
   // Peach collectibles
   private collectedPeaches = new Set<number>();
+  private peachIndexMap = new Map<LevelEntity, number>();
   private totalPeaches = 0;
 
   // Pipe animation state
@@ -105,8 +106,10 @@ export class Game {
     const portal = this.entities.find((e) => e.type === "portal");
     this.levelEnd = pipe ? pipe.x : portal ? portal.x : 3000;
 
-    // Count peaches
-    this.totalPeaches = this.entities.filter((e) => e.type === "peach").length;
+    // Index peaches for O(1) lookup
+    this.peachIndexMap.clear();
+    this.entities.forEach((e, i) => { if (e.type === "peach") this.peachIndexMap.set(e, i); });
+    this.totalPeaches = this.peachIndexMap.size;
     this.collectedPeaches.clear();
   }
 
@@ -146,7 +149,6 @@ export class Game {
       return;
     }
 
-
     if (this.state !== "playing") return;
 
     // Handle jump input with buffering
@@ -165,6 +167,9 @@ export class Game {
     // Move player forward in world space
     this.player.worldX += SCROLL_SPEED;
 
+    // Update camera before physics so platform screen positions are accurate
+    this.camera.update(this.player.worldX);
+
     // Apply gravity (gap-aware)
     this.physics.applyGravity(this.player, this.entities);
 
@@ -180,9 +185,6 @@ export class Game {
         );
       }
     }
-
-    // Update camera
-    this.camera.update(this.player.worldX);
 
     // Update player trail
     this.player.updateTrail();
@@ -223,7 +225,7 @@ export class Game {
       }
 
       if (entity.type === "peach") {
-        const entityIndex = this.entities.indexOf(entity);
+        const entityIndex = this.peachIndexMap.get(entity)!;
         if (!this.collectedPeaches.has(entityIndex)) {
           const peachAABB = this.collision.getPeachAABB(screenX, entity.y ?? 20);
           if (this.collision.checkAABB(playerAABB, peachAABB)) {
