@@ -11,6 +11,13 @@ export default function PlayPage() {
   const [progress, setProgress] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [peachCount, setPeachCount] = useState(0);
+  const [totalPeaches, setTotalPeaches] = useState(5);
+
+  const handlePeachCollect = (count: number, total: number) => {
+    setPeachCount(count);
+    setTotalPeaches(total);
+  };
 
   useEffect(() => {
     const userData = localStorage.getItem("nostalgia_user");
@@ -33,12 +40,13 @@ export default function PlayPage() {
         onWin={handleWin}
         onDeath={handleDeath}
         onProgress={handleProgress}
+        onPeachCollect={handlePeachCollect}
         isPaused={isPaused}
       />
 
       {/* HUD */}
       <div className="pointer-events-none fixed left-0 right-0 top-0 z-10 p-4">
-        <HUD progress={progress} attempts={attempts} />
+        <HUD progress={progress} attempts={attempts} peachCount={peachCount} totalPeaches={totalPeaches} />
       </div>
 
       {/* Pause button */}

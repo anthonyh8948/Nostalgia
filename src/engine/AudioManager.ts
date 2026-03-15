@@ -79,6 +79,28 @@ export class AudioManager {
     this.play();
   }
 
+  playCollectSound(): void {
+    if (!this.ctx) return;
+    if (this.ctx.state === "suspended") this.ctx.resume();
+
+    const now = this.ctx.currentTime;
+    // Ascending major arpeggio: C5 → E5 → G5
+    ([523, 659, 784] as number[]).forEach((freq, i) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      const t = now + i * 0.07;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.28, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+      osc.start(t);
+      osc.stop(t + 0.38);
+    });
+  }
+
   playDeathSound(): void {
     if (!this.ctx) return;
     if (this.ctx.state === "suspended") this.ctx.resume();

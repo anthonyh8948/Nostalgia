@@ -57,6 +57,16 @@ export class CollisionDetector {
     };
   }
 
+  getPeachAABB(screenX: number, heightAboveGround: number): AABB {
+    const size = 28;
+    return {
+      x: screenX - size / 2,
+      y: GROUND_Y - heightAboveGround - size / 2,
+      width: size,
+      height: size,
+    };
+  }
+
   // Check if player fell into a gap (no ground beneath)
   isInGap(playerWorldX: number, entities: { type: string; x: number; width?: number }[]): boolean {
     const playerCenter = playerWorldX + PLAYER_SIZE / 2;

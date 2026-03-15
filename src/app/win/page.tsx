@@ -14,7 +14,14 @@ export default function WinPage() {
     const userData = localStorage.getItem("nostalgia_user");
     if (userData) {
       const parsed = JSON.parse(userData);
-      setUserName(parsed.firstName || "");
+      setUserName(parsed.username || "");
+
+      // Fire-and-forget winner log to Supabase
+      fetch("/api/winner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: parsed.phone }),
+      }).catch(() => {});
     }
     // Stagger the animations
     requestAnimationFrame(() => setShow(true));

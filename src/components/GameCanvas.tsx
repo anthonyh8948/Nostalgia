@@ -7,16 +7,17 @@ interface GameCanvasProps {
   onWin: () => void;
   onDeath: () => void;
   onProgress: (progress: number) => void;
+  onPeachCollect: (count: number, total: number) => void;
   isPaused: boolean;
 }
 
-export function GameCanvas({ onWin, onDeath, onProgress, isPaused }: GameCanvasProps) {
+export function GameCanvas({ onWin, onDeath, onProgress, onPeachCollect, isPaused }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<Game | null>(null);
   const [size, setSize] = useState({ w: 1120, h: 630 });
 
-  const callbacksRef = useRef({ onWin, onDeath, onProgress });
-  callbacksRef.current = { onWin, onDeath, onProgress };
+  const callbacksRef = useRef({ onWin, onDeath, onProgress, onPeachCollect });
+  callbacksRef.current = { onWin, onDeath, onProgress, onPeachCollect };
 
   // Resize canvas to fill window
   useEffect(() => {
@@ -53,6 +54,7 @@ export function GameCanvas({ onWin, onDeath, onProgress, isPaused }: GameCanvasP
       onWin: () => callbacksRef.current.onWin(),
       onDeath: () => callbacksRef.current.onDeath(),
       onProgress: (p) => callbacksRef.current.onProgress(p),
+      onPeachCollect: (count, total) => callbacksRef.current.onPeachCollect(count, total),
     });
 
     gameRef.current = game;

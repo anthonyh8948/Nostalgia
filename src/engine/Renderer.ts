@@ -256,6 +256,31 @@ export class Renderer {
     this.ctx.globalAlpha = 1;
   }
 
+  drawPeach(screenX: number, heightAboveGround: number): void {
+    const bob = Math.sin(Date.now() * 0.0025) * 4;
+    const cx = screenX;
+    const cy = GROUND_Y - heightAboveGround + bob;
+
+    // Pulsing glow ring
+    const pulse = (Math.sin(Date.now() * 0.003) + 1) / 2;
+    this.ctx.strokeStyle = `rgba(255, 160, 80, ${0.25 + pulse * 0.4})`;
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.arc(cx, cy, 18 + pulse * 4, 0, Math.PI * 2);
+    this.ctx.stroke();
+
+    // Emoji with glow
+    this.ctx.shadowColor = "rgba(255, 160, 60, 0.9)";
+    this.ctx.shadowBlur = 20;
+    this.ctx.font = "26px serif";
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+    this.ctx.fillText("🍑", cx, cy);
+    this.ctx.shadowBlur = 0;
+    this.ctx.textAlign = "left";
+    this.ctx.textBaseline = "alphabetic";
+  }
+
   drawEntities(camera: Camera, entities: LevelEntity[]): void {
     for (const entity of entities) {
       const screenX = camera.worldToScreen(entity.x);
@@ -276,6 +301,9 @@ export class Renderer {
           break;
         case "pipe":
           this.drawPipe(screenX, GROUND_Y);
+          break;
+        case "peach":
+          this.drawPeach(screenX, entity.y ?? 20);
           break;
       }
     }

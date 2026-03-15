@@ -22,6 +22,7 @@ interface GameCallbacks {
   onWin: () => void;
   onDeath: () => void;
   onProgress: (progress: number) => void;
+  onPeachCollect: (count: number, total: number) => void;
 }
 
 export class Game {
@@ -44,6 +45,10 @@ export class Game {
   private deathFlash = 0;
   private deathPauseTimer = 0;
   private lastReportedProgress = 0;
+
+  // Peach collectibles
+  private collectedPeaches = new Set<number>();
+  private totalPeaches = 0;
 
   // Pipe animation state
   private pipeAnimTimer = 0;
@@ -99,6 +104,10 @@ export class Game {
     const pipe = this.entities.find((e) => e.type === "pipe");
     const portal = this.entities.find((e) => e.type === "portal");
     this.levelEnd = pipe ? pipe.x : portal ? portal.x : 3000;
+
+    // Count peaches
+    this.totalPeaches = this.entities.filter((e) => e.type === "peach").length;
+    this.collectedPeaches.clear();
   }
 
   private update(_dt: number): void {
@@ -129,6 +138,8 @@ export class Game {
         this.particles.clear();
         this.physics.resetCoyote();
         this.jumpBufferTimer = 0;
+        this.collectedPeaches.clear();
+        this.callbacks.onPeachCollect(0, this.totalPeaches);
         this.state = "playing";
         this.audio.play();
       }
@@ -210,6 +221,16 @@ export class Game {
           return;
         }
       }
+
+      if (entity.type === "peach") {
+        const entityIndex = this.entities.indexOf(entity);
+        if (!this.collectedPeaches.has(entityIndex)) {
+          const peachAABB = this.collision.getPeachAABB(screenX, entity.y ?? 20);
+          if (this.collision.checkAABB(playerAABB, peachAABB)) {
+            this.collectPeach(entityIndex);
+          }
+        }
+      }
     }
 
     // Check if player fell off screen
@@ -234,7 +255,12 @@ export class Game {
     this.renderer.drawStars(this.camera);
     this.renderer.drawGrid(this.camera);
     this.renderer.drawGround(this.camera, this.entities);
-    this.renderer.drawEntities(this.camera, this.entities);
+
+    // Filter out collected peaches before rendering
+    const visibleEntities = this.entities.filter(
+      (e, i) => e.type !== "peach" || !this.collectedPeaches.has(i)
+    );
+    this.renderer.drawEntities(this.camera, visibleEntities);
 
     if (this.state === "entering_pipe") {
       // Draw the pipe animation — player shrinking into pipe
@@ -256,6 +282,25 @@ export class Game {
     this.pipeX = pipeWorldX;
     this.pipeAnimTimer = 0;
     this.winFlash = 0;
+  }
+
+  private collectPeach(entityIndex: number): void {
+    this.collectedPeaches.add(entityIndex);
+    const count = this.collectedPeaches.size;
+
+    // Burst particles at player center
+    this.particles.burst(
+      this.player.x + PLAYER_SIZE / 2,
+      this.player.y + PLAYER_SIZE / 2,
+      18
+    );
+    this.audio.playCollectSound();
+    this.callbacks.onPeachCollect(count, this.totalPeaches);
+
+    // All peaches collected → win
+    if (count >= this.totalPeaches) {
+      this.enterPipe(this.player.worldX + 200);
+    }
   }
 
   private die(): void {
