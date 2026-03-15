@@ -92,10 +92,7 @@ export class Game {
     await this.audio.load(level1.audioSrc);
 
     this.loop.start();
-
-    // Auto-start the game immediately
-    this.state = "playing";
-    this.audio.play();
+    this.state = "idle";
   }
 
   private loadLevel(): void {
@@ -143,6 +140,14 @@ export class Game {
         this.jumpBufferTimer = 0;
         this.collectedPeaches.clear();
         this.callbacks.onPeachCollect(0, this.totalPeaches);
+        this.state = "playing";
+        this.audio.play();
+      }
+      return;
+    }
+
+    if (this.state === "idle") {
+      if (this.input.consumePress()) {
         this.state = "playing";
         this.audio.play();
       }
@@ -270,7 +275,10 @@ export class Game {
       const pipeScreenX = this.camera.worldToScreen(this.pipeX);
       this.renderer.drawPipeAnimation(this.player, pipeScreenX, progress);
       this.renderer.drawWinFlash(this.winFlash);
-    } else if (this.state !== "idle") {
+    } else if (this.state === "idle") {
+      this.renderer.drawPlayer(this.player);
+      this.renderer.drawStartPrompt();
+    } else {
       this.renderer.drawTrail(this.player.trail);
       this.renderer.drawPlayer(this.player);
     }

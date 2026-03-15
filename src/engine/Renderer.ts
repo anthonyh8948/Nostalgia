@@ -335,4 +335,36 @@ export class Renderer {
     this.ctx.globalAlpha = 1;
   }
 
+  drawStartPrompt(): void {
+    const cx = CANVAS_WIDTH / 2;
+    const cy = CANVAS_HEIGHT / 2;
+    const boxW = 340;
+    const boxH = 80;
+
+    // Box background
+    this.ctx.fillStyle = "rgba(14, 0, 24, 0.88)";
+    this.ctx.beginPath();
+    this.ctx.roundRect(cx - boxW / 2, cy - boxH / 2, boxW, boxH, 14);
+    this.ctx.fill();
+
+    // Box border with pink glow
+    this.ctx.shadowColor = COLORS.portalGlow;
+    this.ctx.shadowBlur = 18;
+    this.ctx.strokeStyle = COLORS.groundLine;
+    this.ctx.lineWidth = 1.5;
+    this.ctx.beginPath();
+    this.ctx.roundRect(cx - boxW / 2, cy - boxH / 2, boxW, boxH, 14);
+    this.ctx.stroke();
+    this.ctx.shadowBlur = 0;
+
+    // Message
+    this.ctx.fillStyle = COLORS.text;
+    this.ctx.font = "bold 18px system-ui, sans-serif";
+    this.ctx.textAlign = "center";
+    this.ctx.textBaseline = "middle";
+    this.ctx.fillText("Tap the spacebar to begin", cx, cy);
+    this.ctx.textAlign = "left";
+    this.ctx.textBaseline = "alphabetic";
+  }
+
 }
