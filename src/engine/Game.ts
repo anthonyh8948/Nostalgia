@@ -38,7 +38,7 @@ export class Game {
   private player: Player;
   private callbacks: GameCallbacks;
 
-  private state: GameState = "idle";
+  private state: GameState = "playing";
   private entities: LevelEntity[] = [];
   private levelEnd = 0;
   private deathFlash = 0;
@@ -86,6 +86,10 @@ export class Game {
     await this.audio.load(level1.audioSrc);
 
     this.loop.start();
+
+    // Auto-start the game immediately
+    this.state = "playing";
+    this.audio.play();
   }
 
   private loadLevel(): void {
@@ -125,20 +129,12 @@ export class Game {
         this.particles.clear();
         this.physics.resetCoyote();
         this.jumpBufferTimer = 0;
-        this.state = "idle";
+        this.state = "playing";
+        this.audio.play();
       }
       return;
     }
 
-    // Idle state — waiting for first input
-    if (this.state === "idle") {
-      if (this.input.consumePress()) {
-        this.state = "playing";
-        this.audio.play();
-        this.physics.jump(this.player);
-      }
-      return;
-    }
 
     if (this.state !== "playing") return;
 
@@ -235,6 +231,7 @@ export class Game {
 
   private render(): void {
     this.renderer.clear();
+    this.renderer.drawStars(this.camera);
     this.renderer.drawGrid(this.camera);
     this.renderer.drawGround(this.camera, this.entities);
     this.renderer.drawEntities(this.camera, this.entities);
@@ -252,10 +249,6 @@ export class Game {
 
     this.renderer.drawParticles(this.particles.particles);
     this.renderer.drawDeathFlash(this.deathFlash);
-
-    if (this.state === "idle") {
-      this.renderer.drawStartMessage();
-    }
   }
 
   private enterPipe(pipeWorldX: number): void {
@@ -268,15 +261,13 @@ export class Game {
   private die(): void {
     this.state = "dead";
     this.deathFlash = 0.4;
-    this.deathPauseTimer = 45;
+    this.deathPauseTimer = 55;
 
-    this.particles.burst(
-      this.player.x + PLAYER_SIZE / 2,
-      this.player.y + PLAYER_SIZE / 2,
-      25
-    );
+    // Dissolve player into colored tiles
+    this.particles.dissolve(this.player.x, this.player.y, PLAYER_SIZE);
 
     this.audio.stop();
+    this.audio.playDeathSound();
     this.callbacks.onDeath();
   }
 
@@ -285,6 +276,18 @@ export class Game {
     this.audio.stop();
     this.loop.stop();
     this.callbacks.onWin();
+  }
+
+  pause(): void {
+    if (this.state !== "playing") return;
+    this.loop.stop();
+    this.audio.pausePlayback();
+  }
+
+  resume(): void {
+    if (this.state !== "playing") return;
+    this.loop.start();
+    this.audio.resumePlayback();
   }
 
   destroy(): void {

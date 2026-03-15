@@ -3,85 +3,98 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+const inputClass =
+  "w-full rounded-xl border border-border bg-bg-elevated px-5 py-4 text-base text-text placeholder:text-text-muted outline-none transition-all duration-200 focus:border-neon focus:shadow-[0_0_0_3px_rgba(255,20,147,0.15)]";
+
 export function SignupForm() {
   const router = useRouter();
-  const [form, setForm] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-  });
+  const [step, setStep] = useState<"phone" | "username">("phone");
+  const [phone, setPhone] = useState("");
+  const [username, setUsername] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const update = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-    setError("");
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePhone = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!form.firstName.trim() || !form.lastName.trim()) {
-      setError("Please enter your full name");
-      return;
-    }
-    if (!form.email.includes("@")) {
-      setError("Please enter a valid email");
-      return;
-    }
-    if (form.phone.replace(/\D/g, "").length < 10) {
+    if (phone.replace(/\D/g, "").length < 10) {
       setError("Please enter a valid phone number");
       return;
     }
-
-    localStorage.setItem("nostalgia_user", JSON.stringify(form));
-    router.push("/play");
+    setError("");
+    setStep("username");
   };
 
+  const handleUsername = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (username.trim().length < 2) {
+      setError("Username must be at least 2 characters");
+      return;
+    }
+    setLoading(true);
+
+    const userData = { phone, username };
+    localStorage.setItem("nostalgia_user", JSON.stringify(userData));
+
+    fetch("/api/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userData),
+    }).catch(() => {});
+
+    router.push("/menu");
+  };
+
+  if (step === "phone") {
+    return (
+      <form onSubmit={handlePhone} className="space-y-4">
+        <input
+          type="tel"
+          placeholder="Phone number"
+          value={phone}
+          onChange={(e) => { setPhone(e.target.value); setError(""); }}
+          className={inputClass}
+          autoFocus
+        />
+        {error && <p className="text-xs text-danger">{error}</p>}
+        <button
+          type="submit"
+          className="w-full rounded-xl bg-neon py-4 text-sm font-bold uppercase tracking-[0.15em] text-bg transition-all duration-200 hover:shadow-[0_0_24px_rgba(255,20,147,0.5)]"
+          style={{ boxShadow: "0 0 12px rgba(255,20,147,0.3)" }}
+        >
+          Continue
+        </button>
+      </form>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <input
-          type="text"
-          placeholder="First name"
-          value={form.firstName}
-          onChange={(e) => update("firstName", e.target.value)}
-          className="rounded-lg border border-border bg-bg-surface px-4 py-3 text-sm text-text placeholder:text-text-muted focus:border-neon focus:outline-none"
-        />
-        <input
-          type="text"
-          placeholder="Last name"
-          value={form.lastName}
-          onChange={(e) => update("lastName", e.target.value)}
-          className="rounded-lg border border-border bg-bg-surface px-4 py-3 text-sm text-text placeholder:text-text-muted focus:border-neon focus:outline-none"
-        />
-      </div>
-
+    <form onSubmit={handleUsername} className="space-y-4">
+      <p className="text-center text-sm text-text-muted">
+        Now pick a username
+      </p>
       <input
-        type="email"
-        placeholder="Email"
-        value={form.email}
-        onChange={(e) => update("email", e.target.value)}
-        className="w-full rounded-lg border border-border bg-bg-surface px-4 py-3 text-sm text-text placeholder:text-text-muted focus:border-neon focus:outline-none"
+        type="text"
+        placeholder="Username"
+        value={username}
+        onChange={(e) => { setUsername(e.target.value); setError(""); }}
+        className={inputClass}
+        autoFocus
       />
-
-      <input
-        type="tel"
-        placeholder="Phone number"
-        value={form.phone}
-        onChange={(e) => update("phone", e.target.value)}
-        className="w-full rounded-lg border border-border bg-bg-surface px-4 py-3 text-sm text-text placeholder:text-text-muted focus:border-neon focus:outline-none"
-      />
-
-      {error && (
-        <p className="text-sm text-danger">{error}</p>
-      )}
-
+      {error && <p className="text-xs text-danger">{error}</p>}
       <button
         type="submit"
-        className="w-full rounded-lg bg-neon py-3 text-sm font-semibold uppercase tracking-[0.15em] text-bg transition-all hover:shadow-[0_0_20px_rgba(0,229,255,0.3)]"
+        disabled={loading}
+        className="w-full rounded-xl bg-neon py-4 text-sm font-bold uppercase tracking-[0.15em] text-bg transition-all duration-200 hover:shadow-[0_0_24px_rgba(255,20,147,0.5)] disabled:opacity-60"
+        style={{ boxShadow: "0 0 12px rgba(255,20,147,0.3)" }}
       >
-        Start Playing
+        {loading ? "Loading..." : "Start Playing"}
+      </button>
+      <button
+        type="button"
+        onClick={() => { setStep("phone"); setError(""); }}
+        className="w-full text-xs text-text-muted underline underline-offset-4 hover:text-text"
+      >
+        Back
       </button>
     </form>
   );

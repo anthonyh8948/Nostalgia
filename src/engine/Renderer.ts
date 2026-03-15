@@ -6,14 +6,40 @@ import type { Particle } from "./ParticleSystem";
 
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
+  private stars: { x: number; y: number; size: number; alpha: number }[] = [];
 
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
+    for (let i = 0; i < 90; i++) {
+      this.stars.push({
+        x: Math.random() * CANVAS_WIDTH,
+        y: Math.random() * CANVAS_HEIGHT * 0.75,
+        size: Math.random() * 1.8 + 0.3,
+        alpha: Math.random() * 0.55 + 0.15,
+      });
+    }
   }
 
   clear(): void {
-    this.ctx.fillStyle = COLORS.bg;
+    const grad = this.ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
+    grad.addColorStop(0, "#0e0018");
+    grad.addColorStop(0.55, "#080010");
+    grad.addColorStop(1, "#0a0a0a");
+    this.ctx.fillStyle = grad;
     this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+  }
+
+  drawStars(camera: Camera): void {
+    for (const s of this.stars) {
+      // Slow parallax — stars drift at 20% of camera speed
+      const sx = ((s.x - camera.x * 0.2) % CANVAS_WIDTH + CANVAS_WIDTH) % CANVAS_WIDTH;
+      this.ctx.globalAlpha = s.alpha;
+      this.ctx.fillStyle = "#ffffff";
+      this.ctx.beginPath();
+      this.ctx.arc(sx, s.y, s.size, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+    this.ctx.globalAlpha = 1;
   }
 
   drawGrid(camera: Camera): void {
@@ -50,46 +76,80 @@ export class Renderer {
       // Skip if off screen
       if (screenX + width < 0 || screenX > CANVAS_WIDTH) continue;
 
-      // Ground body
-      this.ctx.fillStyle = COLORS.ground;
+      // Ground body with gradient
+      const groundGrad = this.ctx.createLinearGradient(0, GROUND_Y, 0, CANVAS_HEIGHT);
+      groundGrad.addColorStop(0, "#2a0a2a");
+      groundGrad.addColorStop(1, "#120512");
+      this.ctx.fillStyle = groundGrad;
       this.ctx.fillRect(screenX, GROUND_Y, width, CANVAS_HEIGHT - GROUND_Y);
 
-      // Ground top line
+      // Ground top glow line
+      this.ctx.shadowColor = COLORS.groundLine;
+      this.ctx.shadowBlur = 10;
       this.ctx.strokeStyle = COLORS.groundLine;
-      this.ctx.lineWidth = 2;
+      this.ctx.lineWidth = 2.5;
       this.ctx.beginPath();
       this.ctx.moveTo(screenX, GROUND_Y);
       this.ctx.lineTo(screenX + width, GROUND_Y);
       this.ctx.stroke();
+      this.ctx.shadowBlur = 0;
     }
   }
 
   drawPlayer(player: Player): void {
     const { x, y } = player;
+    const cx = x + PLAYER_SIZE / 2;
+    const cy = y + PLAYER_SIZE / 2;
+    const d = PLAYER_SIZE / 4;
 
-    // Glow
+    // Outer glow
     this.ctx.shadowColor = COLORS.playerGlow;
-    this.ctx.shadowBlur = 15;
+    this.ctx.shadowBlur = 24;
 
     // Player square
     this.ctx.fillStyle = COLORS.player;
     this.ctx.fillRect(x, y, PLAYER_SIZE, PLAYER_SIZE);
 
-    // Reset shadow
     this.ctx.shadowBlur = 0;
 
-    // Inner highlight
-    this.ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-    this.ctx.fillRect(x + 4, y + 4, PLAYER_SIZE - 8, PLAYER_SIZE - 8);
+    // White border inset
+    this.ctx.strokeStyle = "rgba(255,255,255,0.45)";
+    this.ctx.lineWidth = 1.5;
+    this.ctx.strokeRect(x + 4, y + 4, PLAYER_SIZE - 8, PLAYER_SIZE - 8);
+
+    // Inner diamond (GD-style)
+    this.ctx.fillStyle = "rgba(0,0,0,0.35)";
+    this.ctx.beginPath();
+    this.ctx.moveTo(cx, cy - d);
+    this.ctx.lineTo(cx + d, cy);
+    this.ctx.lineTo(cx, cy + d);
+    this.ctx.lineTo(cx - d, cy);
+    this.ctx.closePath();
+    this.ctx.fill();
   }
 
   drawSpike(screenX: number, groundY: number): void {
     const size = 30;
+
+    // Glow
+    this.ctx.shadowColor = COLORS.spike;
+    this.ctx.shadowBlur = 18;
+
     this.ctx.fillStyle = COLORS.spike;
     this.ctx.beginPath();
     this.ctx.moveTo(screenX, groundY);
     this.ctx.lineTo(screenX + size / 2, groundY - size);
     this.ctx.lineTo(screenX + size, groundY);
+    this.ctx.closePath();
+    this.ctx.fill();
+
+    // Bright tip highlight
+    this.ctx.shadowBlur = 0;
+    this.ctx.fillStyle = "rgba(255,255,255,0.8)";
+    this.ctx.beginPath();
+    this.ctx.moveTo(screenX + size / 2 - 2, groundY - size + 6);
+    this.ctx.lineTo(screenX + size / 2, groundY - size);
+    this.ctx.lineTo(screenX + size / 2 + 2, groundY - size + 6);
     this.ctx.closePath();
     this.ctx.fill();
   }
@@ -224,7 +284,7 @@ export class Renderer {
   drawParticles(particles: Particle[]): void {
     for (const p of particles) {
       this.ctx.globalAlpha = p.life;
-      this.ctx.fillStyle = COLORS.particle;
+      this.ctx.fillStyle = p.color ?? COLORS.particle;
       this.ctx.fillRect(p.x, p.y, p.size, p.size);
     }
     this.ctx.globalAlpha = 1;

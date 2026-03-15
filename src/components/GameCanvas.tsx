@@ -7,9 +7,10 @@ interface GameCanvasProps {
   onWin: () => void;
   onDeath: () => void;
   onProgress: (progress: number) => void;
+  isPaused: boolean;
 }
 
-export function GameCanvas({ onWin, onDeath, onProgress }: GameCanvasProps) {
+export function GameCanvas({ onWin, onDeath, onProgress, isPaused }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<Game | null>(null);
   const [size, setSize] = useState({ w: 1120, h: 630 });
@@ -26,6 +27,13 @@ export function GameCanvas({ onWin, onDeath, onProgress }: GameCanvasProps) {
     window.addEventListener("resize", updateSize);
     return () => window.removeEventListener("resize", updateSize);
   }, []);
+
+  // Pause / resume
+  useEffect(() => {
+    if (!gameRef.current) return;
+    if (isPaused) gameRef.current.pause();
+    else gameRef.current.resume();
+  }, [isPaused]);
 
   // Init game once, and reinit when size changes
   useEffect(() => {
