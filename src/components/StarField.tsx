@@ -2,13 +2,12 @@
 
 import { useEffect, useRef } from "react";
 
-// Weighted color palette: mostly white, with scattered pink/purple/cyan/gold
 const PALETTE = [
-  { r: 255, g: 255, b: 255, w: 6 },  // white
-  { r: 255, g: 30,  b: 155, w: 2 },  // pink
-  { r: 180, g: 80,  b: 255, w: 2 },  // purple
-  { r: 80,  g: 210, b: 255, w: 1 },  // cyan
-  { r: 255, g: 215, b: 80,  w: 1 },  // gold
+  { r: 255, g: 255, b: 255, w: 6 },
+  { r: 255, g: 30,  b: 155, w: 2 },
+  { r: 180, g: 80,  b: 255, w: 2 },
+  { r: 80,  g: 210, b: 255, w: 1 },
+  { r: 255, g: 215, b: 80,  w: 1 },
 ];
 
 function pickColor() {
@@ -44,8 +43,11 @@ function makeStar(w: number, h: number): Star {
   };
 }
 
+const MOUSE_RADIUS = 160;
+
 export function StarField() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouseRef = useRef({ x: -9999, y: -9999 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -63,22 +65,32 @@ export function StarField() {
     resize();
     window.addEventListener("resize", resize);
 
+    const onMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+    const onMouseLeave = () => {
+      mouseRef.current = { x: -9999, y: -9999 };
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseleave", onMouseLeave);
+
     const stars: Star[] = Array.from({ length: 200 }, () => makeStar(w, h));
 
     const draw = () => {
       ctx.clearRect(0, 0, w, h);
       const now = Date.now();
       const t = now / 1000;
+      const { x: mx, y: my } = mouseRef.current;
 
       for (const s of stars) {
         // Drift + wrap
         s.x = (s.x + s.vx + w) % w;
         s.y = (s.y + s.vy + h) % h;
 
-        // Twinkle: slow sine modulation
+        // Twinkle
         const twinkle = 0.65 + 0.35 * Math.sin(t * s.twinkleSpeed + s.twinkleOffset);
 
-        // Flash: star briefly ignites brightly
+        // Flash
         const elapsed = now - s.nextFlash;
         let flash = 0;
         if (elapsed >= 0) {
@@ -86,18 +98,24 @@ export function StarField() {
           if (p < 1) {
             flash = p < 0.25 ? p / 0.25 : 1 - (p - 0.25) / 0.75;
           } else {
-            // Schedule next flash 4–12 seconds away
             s.nextFlash = now + 4000 + Math.random() * 8000;
           }
         }
 
-        const { r, g, b } = s.color;
-        const alpha = Math.min(1, s.baseAlpha * twinkle + flash * 0.95);
-        const size = s.size * (1 + flash * 2.5);
+        // Mouse proximity boost
+        const dist = Math.hypot(s.x - mx, s.y - my);
+        const proximity = dist < MOUSE_RADIUS ? 1 - dist / MOUSE_RADIUS : 0;
+        // Ease the proximity curve so stars near the edge still glow a bit
+        const prox = proximity * proximity * (3 - 2 * proximity); // smoothstep
 
-        if (flash > 0.05) {
-          ctx.shadowColor = `rgba(${r},${g},${b},${flash})`;
-          ctx.shadowBlur = 10 + flash * 18;
+        const { r, g, b } = s.color;
+        const alpha = Math.min(1, s.baseAlpha * twinkle + flash * 0.9 + prox * 0.85);
+        const size = s.size * (1 + flash * 2.5 + prox * 3.5);
+        const glowStrength = flash + prox;
+
+        if (glowStrength > 0.05) {
+          ctx.shadowColor = `rgba(${r},${g},${b},${Math.min(1, glowStrength)})`;
+          ctx.shadowBlur = (flash * 14 + prox * 22);
         } else {
           ctx.shadowBlur = 0;
         }
@@ -118,6 +136,8 @@ export function StarField() {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseleave", onMouseLeave);
     };
   }, []);
 
