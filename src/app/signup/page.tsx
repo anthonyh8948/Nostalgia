@@ -9,6 +9,10 @@ export default function SignupPage() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    if (localStorage.getItem("nostalgia_user")) {
+      window.location.replace("/menu");
+      return;
+    }
     const t = setTimeout(() => setShow(true), 50);
     return () => clearTimeout(t);
   }, []);
@@ -77,13 +81,6 @@ export default function SignupPage() {
           <SignupForm />
         </div>
 
-        {/* Footer */}
-        <p
-          className="mt-6 text-center text-xs text-text-muted transition-all duration-700 delay-300"
-          style={{ opacity: show ? 1 : 0 }}
-        >
-          First 500 winners get discounted concert tickets
-        </p>
       </div>
     </div>
   );
