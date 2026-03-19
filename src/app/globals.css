@@ -39,3 +39,32 @@ body {
 canvas {
   display: block;
 }
+
+@keyframes floatGeo {
+  0%, 100% { transform: rotate(var(--r, 45deg)) translateY(0px); }
+  50%       { transform: rotate(calc(var(--r, 45deg) + 3deg)) translateY(-18px); }
+}
+
+.btn-vault {
+  border: 1px solid #ff1493;
+  color: #ff1493;
+  background: rgba(255, 20, 147, 0.06);
+  box-shadow: 0 0 24px rgba(255, 20, 147, 0.12), inset 0 0 24px rgba(255, 20, 147, 0.03);
+  transition: background 0.28s ease, color 0.28s ease, box-shadow 0.28s ease;
+}
+.btn-vault:hover {
+  background: #ff1493;
+  color: #0a0a0a;
+  box-shadow: 0 0 42px rgba(255, 20, 147, 0.55);
+}
+.btn-vault:hover .btn-vault-arrow {
+  transform: translateX(4px);
+}
+.btn-vault-arrow {
+  transition: transform 0.28s ease;
+}
+
+@keyframes floatGeoCCW {
+  0%, 100% { transform: rotate(var(--r, 20deg)) translateY(0px); }
+  50%       { transform: rotate(calc(var(--r, 20deg) - 3deg)) translateY(-14px); }
+}
