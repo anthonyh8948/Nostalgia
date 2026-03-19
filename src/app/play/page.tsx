@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GameCanvas, type GameHandle } from "@/components/GameCanvas";
 import { HUD } from "@/components/HUD";
+import { BackButton } from "@/components/BackButton";
 
 export default function PlayPage() {
   const router = useRouter();
@@ -46,6 +47,7 @@ export default function PlayPage() {
 
   return (
     <div className="h-dvh w-dvw overflow-hidden bg-bg">
+      <BackButton href="/menu" />
       <GameCanvas
         ref={gameRef}
         onWin={handleWin}

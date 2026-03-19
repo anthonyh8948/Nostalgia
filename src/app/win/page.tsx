@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { COUPON_CODE } from "@/lib/constants";
+import { BackButton } from "@/components/BackButton";
 
 export default function WinPage() {
   const [copied, setCopied] = useState(false);
@@ -37,6 +38,7 @@ export default function WinPage() {
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center overflow-hidden px-6">
+      <BackButton href="/menu" />
       <div
         className="pointer-events-none fixed inset-0"
         style={{

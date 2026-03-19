@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BackButton } from "@/components/BackButton";
 
 const SONGS = [
   {
@@ -76,6 +77,7 @@ export default function MenuPage() {
 
   return (
     <>
+      <BackButton href="/" />
       {/* Lock pulse animation */}
       <style>{`
         @keyframes lockPulse {

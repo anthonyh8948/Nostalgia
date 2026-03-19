@@ -2,6 +2,7 @@
 
 import { SignupForm } from "@/components/SignupForm";
 import { StarField } from "@/components/StarField";
+import { BackButton } from "@/components/BackButton";
 import { useEffect, useState } from "react";
 
 export default function SignupPage() {
@@ -14,6 +15,7 @@ export default function SignupPage() {
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-6">
+      <BackButton href="/" />
       {/* Sky gradient */}
       <div
         className="pointer-events-none fixed inset-0"
