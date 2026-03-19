@@ -5,10 +5,10 @@ export async function POST(req: NextRequest) {
   try {
     const { phone, username } = await req.json();
 
-    const { error } = await supabase.from("signups").insert({
-      phone,
-      username,
-    });
+    const { error } = await supabase.from("signups").upsert(
+      { phone, username },
+      { onConflict: "phone" }
+    );
 
     if (error) throw error;
 

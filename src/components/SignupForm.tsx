@@ -24,24 +24,32 @@ export function SignupForm() {
     setStep("username");
   };
 
-  const handleUsername = (e: React.FormEvent) => {
+  const handleUsername = async (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim().length < 2) {
       setError("Username must be at least 2 characters");
       return;
     }
     setLoading(true);
+    setError("");
 
-    const userData = { phone, username };
-    localStorage.setItem("nostalgia_user", JSON.stringify(userData));
+    try {
+      const userData = { phone, username };
 
-    fetch("/api/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-    }).catch(() => {});
+      const res = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData),
+      });
 
-    router.push("/menu");
+      if (!res.ok) throw new Error("Failed to save");
+
+      localStorage.setItem("nostalgia_user", JSON.stringify(userData));
+      router.push("/menu");
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+    }
   };
 
   if (step === "phone") {
