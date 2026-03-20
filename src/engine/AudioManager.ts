@@ -1,7 +1,6 @@
 export class AudioManager {
   private ctx: AudioContext | null = null;
   private buffer: AudioBuffer | null = null;
-  private rawBytes: Uint8Array | null = null;
   private source: AudioBufferSourceNode | null = null;
   private gainNode: GainNode | null = null;
   private playing = false;
@@ -10,64 +9,50 @@ export class AudioManager {
 
   async load(url: string): Promise<void> {
     try {
-      const response = await fetch(encodeURI(url));
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      // Store raw bytes so we can decode after AudioContext is created
-      this.rawBytes = new Uint8Array(await response.arrayBuffer());
-    } catch (err) {
-      console.warn("Audio failed to load:", err);
-      this.rawBytes = null;
-    }
-  }
-
-  async play(): Promise<void> {
-    if (!this.rawBytes) return;
-
-    // Create AudioContext during user gesture so it starts unlocked
-    if (!this.ctx) {
       this.ctx = new AudioContext();
       this.gainNode = this.ctx.createGain();
       this.gainNode.connect(this.ctx.destination);
-    }
 
+      const response = await fetch(encodeURI(url));
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const arrayBuffer = await response.arrayBuffer();
+      this.buffer = await this.ctx.decodeAudioData(arrayBuffer);
+    } catch (err) {
+      console.warn("Audio failed to load:", err);
+    }
+  }
+
+  play(): void {
+    if (!this.ctx || !this.buffer || !this.gainNode) return;
+
+    // Resume context if suspended — source.start() will fire once it's running
     if (this.ctx.state === "suspended") {
-      await this.ctx.resume();
+      this.ctx.resume();
     }
 
-    // Decode if not yet done (first play)
-    if (!this.buffer) {
-      try {
-        // slice() clones the buffer so decodeAudioData doesn't detach it
-        this.buffer = await this.ctx.decodeAudioData(this.rawBytes.buffer.slice(0) as ArrayBuffer);
-      } catch (err) {
-        console.warn("Audio decode failed:", err);
-        return;
-      }
-    }
-
-    this.stop();
+    this.stopSource();
 
     this.source = this.ctx.createBufferSource();
     this.source.buffer = this.buffer;
     this.source.loop = true;
-    this.source.connect(this.gainNode!);
+    this.source.connect(this.gainNode);
     this.source.start(0, this.pauseOffset);
     this.startedAt = this.ctx.currentTime - this.pauseOffset;
     this.pauseOffset = 0;
     this.playing = true;
   }
 
-  stop(): void {
-    if (this.source && this.playing) {
-      try {
-        this.source.stop();
-      } catch {
-        // Already stopped
-      }
+  private stopSource(): void {
+    if (this.source) {
+      try { this.source.stop(); } catch { /* already stopped */ }
       this.source.disconnect();
       this.source = null;
       this.playing = false;
     }
+  }
+
+  stop(): void {
+    this.stopSource();
     this.pauseOffset = 0;
     this.startedAt = 0;
   }
@@ -75,12 +60,7 @@ export class AudioManager {
   pausePlayback(): void {
     if (!this.playing || !this.ctx) return;
     const savedOffset = this.ctx.currentTime - this.startedAt;
-    if (this.source) {
-      try { this.source.stop(); } catch { /* already stopped */ }
-      this.source.disconnect();
-      this.source = null;
-    }
-    this.playing = false;
+    this.stopSource();
     this.pauseOffset = savedOffset;
   }
 
@@ -141,11 +121,11 @@ export class AudioManager {
   }
 
   isLoaded(): boolean {
-    return this.rawBytes !== null;
+    return this.buffer !== null;
   }
 
   destroy(): void {
-    this.stop();
+    this.stopSource();
     if (this.ctx) {
       this.ctx.close();
       this.ctx = null;
