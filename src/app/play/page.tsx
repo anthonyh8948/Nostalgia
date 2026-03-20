@@ -16,7 +16,7 @@ export default function PlayPage() {
   const [peachCount, setPeachCount] = useState(0);
   const [totalPeaches, setTotalPeaches] = useState(5);
   const [isIdle, setIsIdle] = useState(false);
-  const [levelId, setLevelId] = useState(0);
+  const [levelId, setLevelId] = useState<number | null>(null);
 
   const handlePeachCollect = (count: number, total: number) => {
     setPeachCount(count);
@@ -55,7 +55,7 @@ export default function PlayPage() {
     gameRef.current?.start();
   };
 
-  if (!hasAccount) return null;
+  if (!hasAccount || levelId === null) return null;
 
   return (
     <div className="h-dvh w-dvw overflow-hidden bg-bg">
