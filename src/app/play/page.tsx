@@ -19,7 +19,11 @@ export default function PlayPage() {
   const [levelId, setLevelId] = useState<number | null>(null);
 
   const handlePeachCollect = (collected: number[], total: number) => {
-    setCollectedPeaches(collected);
+    // Merge: state only grows — never loses peaches even if game reinitializes
+    setCollectedPeaches(prev => {
+      const merged = new Set([...prev, ...collected]);
+      return Array.from(merged);
+    });
     setTotalPeaches(total);
   };
 

@@ -281,12 +281,16 @@ export default function MenuPage() {
 
                   {isUnlocked ? (
                     <div>
-                      {song.id === 0 && peachVibePeaches > 0 && (
-                        <div style={{ marginBottom: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span style={{ fontSize: "10px", letterSpacing: "0.2em", color: song.accent, textTransform: "uppercase", opacity: 0.7 }}>Best run</span>
-                          <div style={{ display: "flex", gap: "3px" }}>
+                      {song.id === 0 && (
+                        <div style={{ marginBottom: "14px" }}>
+                          <p style={{ fontSize: "11px", letterSpacing: "0.15em", color: song.accent, textTransform: "uppercase", margin: "0 0 6px 0", opacity: 0.85 }}>
+                            {peachVibePeaches > 0
+                              ? `Collected ${peachVibePeaches}/5 peaches`
+                              : "Collect 3/5 peaches to unlock Kingda Ka"}
+                          </p>
+                          <div style={{ display: "flex", gap: "4px" }}>
                             {Array.from({ length: 5 }).map((_, i) => (
-                              <span key={i} style={{ fontSize: "12px", opacity: i < peachVibePeaches ? 1 : 0.2 }}>🍑</span>
+                              <span key={i} style={{ fontSize: "14px", opacity: i < peachVibePeaches ? 1 : 0.2, filter: i < peachVibePeaches ? "drop-shadow(0 0 4px rgba(255,160,60,0.9))" : "none" }}>🍑</span>
                             ))}
                           </div>
                         </div>
