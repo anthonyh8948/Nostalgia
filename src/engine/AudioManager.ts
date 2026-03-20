@@ -13,6 +13,17 @@ export class AudioManager {
       this.gainNode = this.ctx.createGain();
       this.gainNode.connect(this.ctx.destination);
 
+      // Unlock AudioContext on first user gesture (needed for desktop Chrome autoplay policy)
+      const unlock = () => {
+        this.ctx?.resume();
+        document.removeEventListener("keydown", unlock, true);
+        document.removeEventListener("pointerdown", unlock, true);
+        document.removeEventListener("touchstart", unlock, true);
+      };
+      document.addEventListener("keydown", unlock, true);
+      document.addEventListener("pointerdown", unlock, true);
+      document.addEventListener("touchstart", unlock, true);
+
       const response = await fetch(encodeURI(url));
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const arrayBuffer = await response.arrayBuffer();
