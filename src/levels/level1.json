@@ -68,7 +68,7 @@
     { "type": "spike", "x": 14900 },
     { "type": "spike", "x": 15200 },
 
-    { "type": "ground", "x": 15920, "width": 1200 },
+    { "type": "ground", "x": 15720, "width": 1400 },
     { "type": "spike", "x": 16100 },
     { "type": "spike", "x": 16400 },
     { "type": "spike", "x": 16700 },
@@ -132,9 +132,9 @@
     { "type": "spike", "x": 30600 },
     { "type": "spike", "x": 30900 },
 
-    { "type": "ground", "x": 31820, "width": 700 },
-    { "type": "spike", "x": 32000 },
-    { "type": "spike", "x": 32250 },
+    { "type": "ground", "x": 31620, "width": 1100 },
+    { "type": "spike", "x": 31800 },
+    { "type": "spike", "x": 32100 },
 
     { "type": "ground", "x": 32720, "width": 1600 },
     { "type": "spike", "x": 32900 },
