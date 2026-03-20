@@ -7,9 +7,12 @@ import { CollisionDetector } from "./CollisionDetector";
 import { AudioManager } from "./AudioManager";
 import { ParticleSystem } from "./ParticleSystem";
 import { Player } from "@/entities/Player";
-import { SCROLL_SPEED, PLAYER_SIZE, CANVAS_HEIGHT, GROUND_Y, setCanvasSize } from "@/lib/constants";
+import { PLAYER_SIZE, CANVAS_HEIGHT, GROUND_Y, setCanvasSize } from "@/lib/constants";
 import type { GameState } from "@/lib/constants";
 import level1 from "@/levels/level1.json";
+import level2 from "@/levels/level2.json";
+
+const LEVELS = [level1, level2];
 
 export interface LevelEntity {
   type: string;
@@ -40,6 +43,8 @@ export class Game {
   private player: Player;
   private callbacks: GameCallbacks;
 
+  private levelId: number;
+  private scrollSpeed = 8;
   private state: GameState = "playing";
   private entities: LevelEntity[] = [];
   private levelEnd = 0;
@@ -62,10 +67,11 @@ export class Game {
   private jumpBufferTimer = 0;
   private readonly JUMP_BUFFER_FRAMES = 6; // ~100ms at 60fps
 
-  constructor(canvas: HTMLCanvasElement, callbacks: GameCallbacks) {
+  constructor(canvas: HTMLCanvasElement, callbacks: GameCallbacks, levelId = 0) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d")!;
     this.callbacks = callbacks;
+    this.levelId = levelId;
 
     // Set canvas dimensions before creating subsystems
     setCanvasSize(canvas.width, canvas.height);
@@ -86,18 +92,21 @@ export class Game {
   }
 
   async init(): Promise<void> {
+    const levelData = LEVELS[this.levelId] ?? LEVELS[0];
     this.input.init();
-    this.loadLevel();
-
-    // Try to load audio (will silently fail if no file)
-    await this.audio.load(level1.audioSrc);
-
+    this.loadLevel(levelData);
+    await this.audio.load(levelData.audioSrc);
     this.loop.start();
     this.enterIdle();
   }
 
-  private loadLevel(): void {
-    this.entities = level1.entities as LevelEntity[];
+  private loadLevel(data: typeof level1): void {
+    const anyData = data as Record<string, unknown>;
+    this.scrollSpeed = (anyData.scrollSpeed as number) ?? 8;
+    if (anyData.theme) {
+      this.renderer.setTheme(anyData.theme as Parameters<typeof this.renderer.setTheme>[0]);
+    }
+    this.entities = data.entities as LevelEntity[];
 
     // Find level end (pipe or portal position)
     const pipe = this.entities.find((e) => e.type === "pipe");
@@ -170,7 +179,7 @@ export class Game {
     }
 
     // Move player forward in world space
-    this.player.worldX += SCROLL_SPEED;
+    this.player.worldX += this.scrollSpeed;
 
     // Update camera before physics so platform screen positions are accurate
     this.camera.update(this.player.worldX);

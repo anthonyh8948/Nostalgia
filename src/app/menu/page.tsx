@@ -69,10 +69,16 @@ export default function MenuPage() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [dragOffset, setDragOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [unlockedOverrides, setUnlockedOverrides] = useState<Set<number>>(new Set());
   const startX = useRef(0);
 
   useEffect(() => {
     if (!localStorage.getItem("nostalgia_user")) router.replace("/signup");
+    const overrides = new Set<number>();
+    if (localStorage.getItem("nostalgia_track1_unlocked") === "1") {
+      overrides.add(1);
+    }
+    setUnlockedOverrides(overrides);
   }, [router]);
 
   const onDragStart = (x: number) => {
@@ -151,13 +157,16 @@ export default function MenuPage() {
             const scale = isActive ? 1 : 0.82;
             const opacity = dist > 1 ? 0 : isActive ? 1 : 0.45;
             const zIndex = SONGS.length - dist;
+            const isUnlocked = song.unlocked || unlockedOverrides.has(song.id);
 
             return (
               <div
                 key={song.id}
                 onClick={() => {
-                  if (isActive && song.unlocked) router.push("/play");
-                  else if (!isActive) setActiveIndex(i);
+                  if (isActive && isUnlocked) {
+                    localStorage.setItem("nostalgia_selected_level", String(song.id));
+                    router.push("/play");
+                  } else if (!isActive) setActiveIndex(i);
                 }}
                 style={{
                   position: "absolute",
@@ -176,11 +185,11 @@ export default function MenuPage() {
                   opacity,
                   zIndex,
                   overflow: "hidden",
-                  cursor: isActive && song.unlocked ? "pointer" : dist === 0 ? "default" : "pointer",
+                  cursor: isActive && isUnlocked ? "pointer" : dist === 0 ? "default" : "pointer",
                 }}
               >
                 {/* Shimmer on locked cards */}
-                {!song.unlocked && isActive && (
+                {!isUnlocked && isActive && (
                   <div
                     style={{
                       position: "absolute",
@@ -267,7 +276,7 @@ export default function MenuPage() {
 
                   <div style={{ flex: 1 }} />
 
-                  {song.unlocked ? (
+                  {isUnlocked ? (
                     <div>
                       <div
                         style={{
@@ -293,6 +302,7 @@ export default function MenuPage() {
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
+                          localStorage.setItem("nostalgia_selected_level", String(song.id));
                           router.push("/play");
                         }}
                       >
@@ -334,7 +344,7 @@ export default function MenuPage() {
             marginTop: "18px",
             fontSize: "10px",
             letterSpacing: "0.3em",
-            color: "rgba(255,255,255,0.25)",
+            color: "rgba(255,255,255,0.65)",
             textTransform: "uppercase",
           }}
         >

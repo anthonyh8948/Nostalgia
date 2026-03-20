@@ -16,6 +16,7 @@ export default function PlayPage() {
   const [peachCount, setPeachCount] = useState(0);
   const [totalPeaches, setTotalPeaches] = useState(5);
   const [isIdle, setIsIdle] = useState(false);
+  const [levelId, setLevelId] = useState(0);
 
   const handlePeachCollect = (count: number, total: number) => {
     setPeachCount(count);
@@ -29,9 +30,20 @@ export default function PlayPage() {
     } else {
       setHasAccount(true);
     }
+    const savedLevel = localStorage.getItem("nostalgia_selected_level");
+    setLevelId(savedLevel ? parseInt(savedLevel) : 0);
   }, [router]);
 
-  const handleWin = () => router.push("/win");
+  const handleWin = () => {
+    if (levelId === 0) {
+      localStorage.setItem("nostalgia_peach_vibe_completed", "1");
+      localStorage.setItem("nostalgia_peach_vibe_peaches", String(peachCount));
+      if (peachCount >= 3) {
+        localStorage.setItem("nostalgia_track1_unlocked", "1");
+      }
+    }
+    router.push("/win");
+  };
   const handleDeath = () => setAttempts((a) => a + 1);
   const handleProgress = (p: number) => setProgress(p);
   const handleIdle = () => setIsIdle(true);
@@ -50,6 +62,7 @@ export default function PlayPage() {
       <BackButton href="/menu" />
       <GameCanvas
         ref={gameRef}
+        levelId={levelId}
         onWin={handleWin}
         onDeath={handleDeath}
         onProgress={handleProgress}

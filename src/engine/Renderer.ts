@@ -4,9 +4,44 @@ import type { Player } from "@/entities/Player";
 import type { LevelEntity } from "./Game";
 import type { Particle } from "./ParticleSystem";
 
+export interface LevelTheme {
+  bgTop: string;
+  bgMid: string;
+  bgBot: string;
+  groundFill1: string;
+  groundFill2: string;
+  groundLine: string;
+  spike: string;
+  platform: string;
+  portal: string;
+  portalGlow: string;
+  gridLine: string;
+  deathFlash: string;
+}
+
+const DEFAULT_THEME: LevelTheme = {
+  bgTop: "#0e0018",
+  bgMid: "#080010",
+  bgBot: "#0a0a0a",
+  groundFill1: "#2a0a2a",
+  groundFill2: "#120512",
+  groundLine: COLORS.groundLine,
+  spike: COLORS.spike,
+  platform: COLORS.platform,
+  portal: COLORS.portal,
+  portalGlow: COLORS.portalGlow,
+  gridLine: COLORS.gridLine,
+  deathFlash: "#e040fb",
+};
+
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private stars: { x: number; y: number; size: number; alpha: number }[] = [];
+  private theme: LevelTheme = DEFAULT_THEME;
+
+  setTheme(theme: Partial<LevelTheme>): void {
+    this.theme = { ...DEFAULT_THEME, ...theme };
+  }
 
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
@@ -22,9 +57,9 @@ export class Renderer {
 
   clear(): void {
     const grad = this.ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-    grad.addColorStop(0, "#0e0018");
-    grad.addColorStop(0.55, "#080010");
-    grad.addColorStop(1, "#0a0a0a");
+    grad.addColorStop(0, this.theme.bgTop);
+    grad.addColorStop(0.55, this.theme.bgMid);
+    grad.addColorStop(1, this.theme.bgBot);
     this.ctx.fillStyle = grad;
     this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   }
@@ -46,7 +81,7 @@ export class Renderer {
     const spacing = 60;
     const offsetX = camera.x % spacing;
 
-    this.ctx.strokeStyle = COLORS.gridLine;
+    this.ctx.strokeStyle = this.theme.gridLine;
     this.ctx.lineWidth = 1;
 
     // Vertical lines
@@ -78,15 +113,15 @@ export class Renderer {
 
       // Ground body with gradient
       const groundGrad = this.ctx.createLinearGradient(0, GROUND_Y, 0, CANVAS_HEIGHT);
-      groundGrad.addColorStop(0, "#2a0a2a");
-      groundGrad.addColorStop(1, "#120512");
+      groundGrad.addColorStop(0, this.theme.groundFill1);
+      groundGrad.addColorStop(1, this.theme.groundFill2);
       this.ctx.fillStyle = groundGrad;
       this.ctx.fillRect(screenX, GROUND_Y, width, CANVAS_HEIGHT - GROUND_Y);
 
       // Ground top glow line
-      this.ctx.shadowColor = COLORS.groundLine;
+      this.ctx.shadowColor = this.theme.groundLine;
       this.ctx.shadowBlur = 10;
-      this.ctx.strokeStyle = COLORS.groundLine;
+      this.ctx.strokeStyle = this.theme.groundLine;
       this.ctx.lineWidth = 2.5;
       this.ctx.beginPath();
       this.ctx.moveTo(screenX, GROUND_Y);
@@ -132,10 +167,10 @@ export class Renderer {
     const size = 30;
 
     // Glow
-    this.ctx.shadowColor = COLORS.spike;
+    this.ctx.shadowColor = this.theme.spike;
     this.ctx.shadowBlur = 18;
 
-    this.ctx.fillStyle = COLORS.spike;
+    this.ctx.fillStyle = this.theme.spike;
     this.ctx.beginPath();
     this.ctx.moveTo(screenX, groundY);
     this.ctx.lineTo(screenX + size / 2, groundY - size);
@@ -155,11 +190,11 @@ export class Renderer {
   }
 
   drawPlatform(screenX: number, y: number, width: number): void {
-    this.ctx.fillStyle = COLORS.platform;
+    this.ctx.fillStyle = this.theme.platform;
     this.ctx.fillRect(screenX, y, width, 15);
 
     // Top edge
-    this.ctx.strokeStyle = COLORS.groundLine;
+    this.ctx.strokeStyle = this.theme.groundLine;
     this.ctx.lineWidth = 1;
     this.ctx.beginPath();
     this.ctx.moveTo(screenX, y);
@@ -173,10 +208,10 @@ export class Renderer {
     const portalY = groundY - height;
 
     // Glow
-    this.ctx.shadowColor = COLORS.portalGlow;
+    this.ctx.shadowColor = this.theme.portalGlow;
     this.ctx.shadowBlur = 20;
 
-    this.ctx.fillStyle = COLORS.portal;
+    this.ctx.fillStyle = this.theme.portal;
     this.ctx.fillRect(screenX, portalY, width, height);
 
     this.ctx.shadowBlur = 0;
@@ -195,7 +230,7 @@ export class Renderer {
     const outerR = pipeWidth / 2 - 8;
 
     // Outer glow
-    this.ctx.shadowColor = COLORS.portalGlow;
+    this.ctx.shadowColor = this.theme.portalGlow;
     this.ctx.shadowBlur = 30;
 
     // Pipe body
@@ -205,7 +240,7 @@ export class Renderer {
     this.ctx.fill();
 
     // Pipe rim
-    this.ctx.strokeStyle = COLORS.portal;
+    this.ctx.strokeStyle = this.theme.portal;
     this.ctx.lineWidth = 3;
     this.ctx.beginPath();
     this.ctx.roundRect(screenX, pipeY, pipeWidth, pipeHeight, 12);
@@ -220,7 +255,7 @@ export class Renderer {
     this.ctx.fill();
 
     // Inner glow ring
-    this.ctx.strokeStyle = "rgba(255, 20, 147, 0.6)";
+    this.ctx.strokeStyle = this.theme.portalGlow;
     this.ctx.lineWidth = 2;
     this.ctx.beginPath();
     this.ctx.ellipse(centerX, centerY, outerR, outerR, 0, 0, Math.PI * 2);
@@ -330,7 +365,7 @@ export class Renderer {
   drawDeathFlash(alpha: number): void {
     if (alpha <= 0) return;
     this.ctx.globalAlpha = alpha;
-    this.ctx.fillStyle = "#e040fb";
+    this.ctx.fillStyle = this.theme.deathFlash;
     this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     this.ctx.globalAlpha = 1;
   }
@@ -347,10 +382,10 @@ export class Renderer {
     this.ctx.roundRect(cx - boxW / 2, cy - boxH / 2, boxW, boxH, 14);
     this.ctx.fill();
 
-    // Box border with pink glow
-    this.ctx.shadowColor = COLORS.portalGlow;
+    // Box border with glow
+    this.ctx.shadowColor = this.theme.portalGlow;
     this.ctx.shadowBlur = 18;
-    this.ctx.strokeStyle = COLORS.groundLine;
+    this.ctx.strokeStyle = this.theme.groundLine;
     this.ctx.lineWidth = 1.5;
     this.ctx.beginPath();
     this.ctx.roundRect(cx - boxW / 2, cy - boxH / 2, boxW, boxH, 14);

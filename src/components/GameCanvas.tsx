@@ -8,6 +8,7 @@ export interface GameHandle {
 }
 
 interface GameCanvasProps {
+  levelId?: number;
   onWin: () => void;
   onDeath: () => void;
   onProgress: (progress: number) => void;
@@ -17,7 +18,7 @@ interface GameCanvasProps {
 }
 
 export const GameCanvas = forwardRef<GameHandle, GameCanvasProps>(
-  function GameCanvas({ onWin, onDeath, onProgress, onPeachCollect, onIdle, isPaused }, ref) {
+  function GameCanvas({ levelId, onWin, onDeath, onProgress, onPeachCollect, onIdle, isPaused }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const gameRef = useRef<Game | null>(null);
     const [size, setSize] = useState({ w: 1120, h: 630 });
@@ -64,7 +65,7 @@ export const GameCanvas = forwardRef<GameHandle, GameCanvasProps>(
         onProgress: (p) => callbacksRef.current.onProgress(p),
         onPeachCollect: (count, total) => callbacksRef.current.onPeachCollect(count, total),
         onIdle: () => callbacksRef.current.onIdle?.(),
-      });
+      }, levelId ?? 0);
 
       gameRef.current = game;
       game.init();
@@ -72,7 +73,7 @@ export const GameCanvas = forwardRef<GameHandle, GameCanvasProps>(
       return () => {
         game.destroy();
       };
-    }, [size]);
+    }, [size, levelId]);
 
     return (
       <canvas

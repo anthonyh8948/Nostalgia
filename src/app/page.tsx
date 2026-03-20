@@ -35,12 +35,12 @@ export default function LandingPage() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 text-center">
+      <div className="relative z-10 text-center" style={{ marginBottom: "20vh" }}>
         <h1
-          className="text-[80px] font-bold leading-[0.9] tracking-[-0.03em] text-white sm:text-[120px]"
+          className="text-[80px] font-bold leading-none tracking-[-0.03em] text-white sm:text-[140px]"
           style={{ textShadow: "0 0 120px rgba(255,20,147,0.18)" }}
         >
-          Tony&apos;s<br />Vault
+          Tony&apos;s Vault
         </h1>
 
         <div className="mt-14">
