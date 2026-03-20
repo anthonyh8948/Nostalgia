@@ -45,7 +45,24 @@ const SONGS = [
     bg: "linear-gradient(160deg, #1a1200 0%, #0f0b00 100%)",
     accent: "#f5a623",
   },
-];
+  {
+    id: 5,
+    name: "Prevue",
+    label: "Track 06",
+    unlocked: false,
+    bg: "linear-gradient(160deg, #0a0a0a 0%, #000000 100%)",
+    accent: "#e0e0e0",
+  },
+  {
+    id: 6,
+    name: "72 Hours in Vegas",
+    label: "Album",
+    unlocked: false,
+    bg: "linear-gradient(160deg, #1a0000 0%, #0d0000 100%)",
+    accent: "#ff2020",
+    sparkle: true,
+  },
+] as Array<{ id: number; name: string; label: string; unlocked: boolean; bg: string; accent: string; sparkle?: boolean }>;
 
 export default function MenuPage() {
   const router = useRouter();
@@ -91,6 +108,10 @@ export default function MenuPage() {
         @keyframes shimmer {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(200%); }
+        }
+        @keyframes sparkleFloat {
+          0%, 100% { opacity: 0; transform: translateY(0px) scale(0.5); }
+          50% { opacity: 1; transform: translateY(-12px) scale(1); }
         }
       `}</style>
 
@@ -179,6 +200,26 @@ export default function MenuPage() {
                         animation: "shimmer 3s ease-in-out infinite",
                       }}
                     />
+                  </div>
+                )}
+
+                {/* Extra sparkles for album card */}
+                {song.sparkle && isActive && (
+                  <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden", borderRadius: "20px" }}>
+                    {[...Array(8)].map((_, si) => (
+                      <div key={si} style={{
+                        position: "absolute",
+                        left: `${10 + si * 11}%`,
+                        top: `${15 + (si % 3) * 25}%`,
+                        width: si % 2 === 0 ? "3px" : "2px",
+                        height: si % 2 === 0 ? "3px" : "2px",
+                        borderRadius: "50%",
+                        background: si % 3 === 0 ? "#fff" : si % 3 === 1 ? "#ff6060" : "#ffaaaa",
+                        boxShadow: `0 0 6px 2px ${si % 3 === 0 ? "#fff8" : "#ff404060"}`,
+                        animation: `sparkleFloat ${1.8 + si * 0.3}s ease-in-out infinite`,
+                        animationDelay: `${si * 0.25}s`,
+                      }} />
+                    ))}
                   </div>
                 )}
 
