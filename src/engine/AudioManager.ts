@@ -25,21 +25,28 @@ export class AudioManager {
   play(): void {
     if (!this.ctx || !this.buffer || !this.gainNode) return;
 
-    // Resume context if suspended — source.start() will fire once it's running
-    if (this.ctx.state === "suspended") {
-      this.ctx.resume();
-    }
-
     this.stopSource();
 
     this.source = this.ctx.createBufferSource();
     this.source.buffer = this.buffer;
     this.source.loop = true;
     this.source.connect(this.gainNode);
-    this.source.start(0, this.pauseOffset);
-    this.startedAt = this.ctx.currentTime - this.pauseOffset;
+
+    const offset = this.pauseOffset;
     this.pauseOffset = 0;
     this.playing = true;
+
+    const doStart = () => {
+      if (!this.source || !this.ctx) return;
+      this.source.start(0, offset);
+      this.startedAt = this.ctx.currentTime - offset;
+    };
+
+    if (this.ctx.state === "suspended") {
+      this.ctx.resume().then(doStart);
+    } else {
+      doStart();
+    }
   }
 
   private stopSource(): void {
