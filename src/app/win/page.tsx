@@ -4,31 +4,31 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BackButton } from "@/components/BackButton";
 
-// ← Swap in your YouTube video ID when ready (the part after ?v= in the URL)
-const TEASER_VIDEO_ID = "YOUR_YOUTUBE_VIDEO_ID";
+// ← Drop your video file at public/video/teaser.mp4
+const TEASER_SRC = "/video/teaser.mp4";
+
+// How long to show the celebration before transitioning to video (ms)
+const CELEBRATION_DURATION = 3000;
+const FADE_DURATION = 600;
 
 interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  rot: number;
-  rotSpeed: number;
-  color: string;
-  size: number;
-  emoji?: string;
+  x: number; y: number; vx: number; vy: number;
+  rot: number; rotSpeed: number; color: string; size: number; emoji?: string;
 }
+
+type Phase = "celebration" | "fading" | "video";
 
 export default function WinPage() {
   const router = useRouter();
+  const [phase, setPhase] = useState<Phase>("celebration");
   const [show, setShow] = useState(false);
   const [showContent, setShowContent] = useState(false);
-  const [showVideo, setShowVideo] = useState(false);
   const [userName, setUserName] = useState("");
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const animFrameRef = useRef<number>(0);
-  const playerRef = useRef<{ destroy?: () => void } | null>(null);
 
+  // User info + win log
   useEffect(() => {
     const userData = localStorage.getItem("nostalgia_user");
     if (userData) {
@@ -41,32 +41,86 @@ export default function WinPage() {
       }).catch(() => {});
     }
     requestAnimationFrame(() => setShow(true));
-    const timer = setTimeout(() => setShowContent(true), 800);
-    return () => clearTimeout(timer);
+    setTimeout(() => setShowContent(true), 600);
   }, []);
 
-  // Confetti
+  // Win fanfare (Web Audio API — no file needed)
+  useEffect(() => {
+    try {
+      const ctx = new AudioContext();
+      const gain = ctx.createGain();
+      gain.connect(ctx.destination);
+
+      const notes = [523, 659, 784, 1047, 1319]; // C5 arpeggio
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        const t = ctx.currentTime + i * 0.13;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.3, t + 0.04);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+        osc.start(t);
+        osc.stop(t + 0.55);
+      });
+
+      // Final chord
+      [523, 659, 784].forEach((freq) => {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.connect(g);
+        g.connect(ctx.destination);
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        const t = ctx.currentTime + notes.length * 0.13 + 0.05;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.25, t + 0.05);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+        osc.start(t);
+        osc.stop(t + 1.3);
+      });
+    } catch {
+      // Audio not available — skip silently
+    }
+  }, []);
+
+  // Auto-transition: celebration → fading → video
+  useEffect(() => {
+    const fadeTimer = setTimeout(() => setPhase("fading"), CELEBRATION_DURATION);
+    const videoTimer = setTimeout(() => setPhase("video"), CELEBRATION_DURATION + FADE_DURATION);
+    return () => { clearTimeout(fadeTimer); clearTimeout(videoTimer); };
+  }, []);
+
+  // Autoplay video when phase switches to "video"
+  useEffect(() => {
+    if (phase !== "video") return;
+    const vid = videoRef.current;
+    if (!vid) return;
+    vid.play().catch(() => {});
+  }, [phase]);
+
+  // Confetti animation
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d")!;
 
-    const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
     resize();
     window.addEventListener("resize", resize);
 
     const COLORS = ["#ff1493", "#ffd700", "#ffffff", "#ff6b35", "#a855f7", "#00e676"];
 
-    const particles: Particle[] = Array.from({ length: 130 }, () => ({
+    const particles: Particle[] = Array.from({ length: 140 }, () => ({
       x: Math.random() * window.innerWidth,
-      y: -20 - Math.random() * 300,
-      vx: (Math.random() - 0.5) * 3,
-      vy: 2 + Math.random() * 3,
+      y: -20 - Math.random() * 400,
+      vx: (Math.random() - 0.5) * 3.5,
+      vy: 2.5 + Math.random() * 3,
       rot: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.12,
+      rotSpeed: (Math.random() - 0.5) * 0.13,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
       size: 7 + Math.random() * 7,
       emoji: Math.random() < 0.28 ? "🍑" : undefined,
@@ -74,22 +128,16 @@ export default function WinPage() {
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       for (const p of particles) {
         p.x += p.vx;
         p.y += p.vy;
         p.rot += p.rotSpeed;
         p.vx += (Math.random() - 0.5) * 0.08;
-
-        if (p.y > canvas.height + 30) {
-          p.y = -20;
-          p.x = Math.random() * canvas.width;
-        }
+        if (p.y > canvas.height + 30) { p.y = -20; p.x = Math.random() * canvas.width; }
 
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.rot);
-
         if (p.emoji) {
           ctx.font = `${p.size * 2.2}px serif`;
           ctx.textAlign = "center";
@@ -100,86 +148,25 @@ export default function WinPage() {
           ctx.fillStyle = p.color;
           ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
         }
-
         ctx.restore();
       }
-
       animFrameRef.current = requestAnimationFrame(animate);
     };
-
     animate();
 
-    return () => {
-      cancelAnimationFrame(animFrameRef.current);
-      window.removeEventListener("resize", resize);
-    };
+    return () => { cancelAnimationFrame(animFrameRef.current); window.removeEventListener("resize", resize); };
   }, []);
 
-  // YouTube player — loads when user clicks Watch
-  useEffect(() => {
-    if (!showVideo) return;
-
-    const existing = document.getElementById("yt-api-script");
-    if (!existing) {
-      const tag = document.createElement("script");
-      tag.id = "yt-api-script";
-      tag.src = "https://www.youtube.com/iframe_api";
-      document.head.appendChild(tag);
-    }
-
-    const setup = () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      playerRef.current = new (window as unknown as { YT: { Player: new (id: string, opts: unknown) => { destroy?: () => void } } }).YT.Player("yt-player", {
-        videoId: TEASER_VIDEO_ID,
-        playerVars: { autoplay: 1, controls: 1, rel: 0 },
-        events: {
-          onStateChange: (event: { data: number }) => {
-            // 0 = ended
-            if (event.data === 0) router.push("/menu");
-          },
-        },
-      });
-    };
-
-    if ((window as unknown as { YT?: unknown }).YT) {
-      setup();
-    } else {
-      (window as unknown as { onYouTubeIframeAPIReady?: () => void }).onYouTubeIframeAPIReady = setup;
-    }
-
-    return () => {
-      playerRef.current?.destroy?.();
-    };
-  }, [showVideo, router]);
-
-  if (showVideo) {
-    return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-black">
-        <div
-          id="yt-player"
-          style={{
-            width: "min(100vw, 177.78vh)",
-            height: "min(100vh, 56.25vw)",
-          }}
-        />
-        <button
-          onClick={() => router.push("/menu")}
-          className="mt-4 text-sm text-white/40 underline transition-colors hover:text-white/80"
-        >
-          Skip → Back to menu
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-6">
-      <BackButton href="/menu" />
+    <div className="fixed inset-0 overflow-hidden bg-bg">
+      {/* Confetti — always rendered, fades with celebration */}
+      <canvas
+        ref={canvasRef}
+        className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-700"
+        style={{ opacity: phase === "celebration" ? 1 : 0 }}
+      />
 
-      {/* Confetti */}
-      <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-0" />
-
-      {/* Grid */}
+      {/* Grid bg */}
       <div
         className="pointer-events-none fixed inset-0 z-0"
         style={{
@@ -189,7 +176,17 @@ export default function WinPage() {
         }}
       />
 
-      <div className="relative z-10 text-center">
+      {/* Celebration screen */}
+      <div
+        className="absolute inset-0 z-10 flex flex-col items-center justify-center px-6 text-center transition-opacity"
+        style={{
+          opacity: phase === "celebration" ? 1 : 0,
+          transitionDuration: `${FADE_DURATION}ms`,
+          pointerEvents: phase === "celebration" ? "auto" : "none",
+        }}
+      >
+        <BackButton href="/menu" />
+
         <h1
           className="text-5xl font-bold tracking-tight text-text transition-all duration-1000 sm:text-7xl"
           style={{
@@ -201,7 +198,7 @@ export default function WinPage() {
         </h1>
 
         <p
-          className="mt-3 text-2xl font-semibold tracking-tight text-neon transition-all duration-700 delay-500"
+          className="mt-3 text-2xl font-semibold tracking-tight text-neon transition-all duration-700 delay-300"
           style={{
             opacity: show ? 1 : 0,
             transform: show ? "translateY(0)" : "translateY(20px)",
@@ -210,40 +207,39 @@ export default function WinPage() {
           You beat the level 🍑
         </p>
 
-        <div
-          className="transition-all duration-700"
+        <p
+          className="mt-6 text-base text-text-muted transition-all duration-700 delay-700"
           style={{
             opacity: showContent ? 1 : 0,
-            transform: showContent ? "translateY(0)" : "translateY(30px)",
+            transform: showContent ? "translateY(0)" : "translateY(16px)",
           }}
         >
-          <p className="mt-8 text-lg text-text-muted">
-            You unlocked something exclusive 👀
-          </p>
+          Get ready for something exclusive…
+        </p>
+      </div>
 
-          <button
-            onClick={() => setShowVideo(true)}
-            className="mt-8 inline-flex items-center gap-3 rounded-xl bg-neon px-10 py-5 text-base font-bold uppercase tracking-[0.2em] text-bg transition-all hover:scale-105"
-            style={{ boxShadow: "0 0 32px rgba(255,20,147,0.5)" }}
-          >
-            ▶&nbsp; Watch the Teaser
-          </button>
-
-          <div className="mt-10 flex items-center justify-center gap-6">
-            <button
-              onClick={() => router.push("/play")}
-              className="text-sm font-medium text-neon underline underline-offset-4 transition-colors hover:text-text"
-            >
-              Play again
-            </button>
-            <button
-              onClick={() => router.push("/")}
-              className="text-sm text-text-muted underline underline-offset-4 transition-colors hover:text-neon"
-            >
-              Back to home
-            </button>
-          </div>
-        </div>
+      {/* Video screen */}
+      <div
+        className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black transition-opacity"
+        style={{
+          opacity: phase === "fading" || phase === "video" ? 1 : 0,
+          transitionDuration: `${FADE_DURATION}ms`,
+          pointerEvents: phase === "video" ? "auto" : "none",
+        }}
+      >
+        <video
+          ref={videoRef}
+          src={TEASER_SRC}
+          playsInline
+          style={{ width: "min(100vw, 177.78vh)", height: "min(100vh, 56.25vw)" }}
+          onEnded={() => router.push("/menu")}
+        />
+        <button
+          onClick={() => router.push("/menu")}
+          className="mt-4 text-sm text-white/40 underline transition-colors hover:text-white/80"
+        >
+          Skip → Back to menu
+        </button>
       </div>
     </div>
   );
