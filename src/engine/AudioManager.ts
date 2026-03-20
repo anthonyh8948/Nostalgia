@@ -14,7 +14,7 @@ export class AudioManager {
       this.gainNode = this.ctx.createGain();
       this.gainNode.connect(this.ctx.destination);
 
-      const response = await fetch(url);
+      const response = await fetch(encodeURI(url));
       const arrayBuffer = await response.arrayBuffer();
       this.buffer = await this.ctx.decodeAudioData(arrayBuffer);
       this.loaded = true;
