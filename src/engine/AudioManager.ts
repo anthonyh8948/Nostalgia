@@ -1,35 +1,48 @@
 export class AudioManager {
   private ctx: AudioContext | null = null;
   private buffer: AudioBuffer | null = null;
+  private rawBytes: Uint8Array | null = null;
   private source: AudioBufferSourceNode | null = null;
   private gainNode: GainNode | null = null;
-  private loaded = false;
   private playing = false;
   private startedAt = 0;
   private pauseOffset = 0;
 
   async load(url: string): Promise<void> {
     try {
-      this.ctx = new AudioContext();
-      this.gainNode = this.ctx.createGain();
-      this.gainNode.connect(this.ctx.destination);
-
       const response = await fetch(encodeURI(url));
-      const arrayBuffer = await response.arrayBuffer();
-      this.buffer = await this.ctx.decodeAudioData(arrayBuffer);
-      this.loaded = true;
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      // Store raw bytes so we can decode after AudioContext is created
+      this.rawBytes = new Uint8Array(await response.arrayBuffer());
     } catch (err) {
       console.warn("Audio failed to load:", err);
-      this.loaded = false;
+      this.rawBytes = null;
     }
   }
 
-  play(): void {
-    if (!this.ctx || !this.buffer || !this.gainNode) return;
+  async play(): Promise<void> {
+    if (!this.rawBytes) return;
 
-    // Resume context if suspended (autoplay policy)
+    // Create AudioContext during user gesture so it starts unlocked
+    if (!this.ctx) {
+      this.ctx = new AudioContext();
+      this.gainNode = this.ctx.createGain();
+      this.gainNode.connect(this.ctx.destination);
+    }
+
     if (this.ctx.state === "suspended") {
-      this.ctx.resume();
+      await this.ctx.resume();
+    }
+
+    // Decode if not yet done (first play)
+    if (!this.buffer) {
+      try {
+        // slice() clones the buffer so decodeAudioData doesn't detach it
+        this.buffer = await this.ctx.decodeAudioData(this.rawBytes.buffer.slice(0) as ArrayBuffer);
+      } catch (err) {
+        console.warn("Audio decode failed:", err);
+        return;
+      }
     }
 
     this.stop();
@@ -37,7 +50,7 @@ export class AudioManager {
     this.source = this.ctx.createBufferSource();
     this.source.buffer = this.buffer;
     this.source.loop = true;
-    this.source.connect(this.gainNode);
+    this.source.connect(this.gainNode!);
     this.source.start(0, this.pauseOffset);
     this.startedAt = this.ctx.currentTime - this.pauseOffset;
     this.pauseOffset = 0;
@@ -72,7 +85,6 @@ export class AudioManager {
   }
 
   resumePlayback(): void {
-    // play() will consume this.pauseOffset
     this.play();
   }
 
@@ -81,7 +93,6 @@ export class AudioManager {
     if (this.ctx.state === "suspended") this.ctx.resume();
 
     const now = this.ctx.currentTime;
-    // Ascending major arpeggio: C5 → E5 → G5
     ([523, 659, 784] as number[]).forEach((freq, i) => {
       const osc = this.ctx!.createOscillator();
       const gain = this.ctx!.createGain();
@@ -104,7 +115,6 @@ export class AudioManager {
 
     const now = this.ctx.currentTime;
 
-    // Main descending buzz
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain);
@@ -117,7 +127,6 @@ export class AudioManager {
     osc.start(now);
     osc.stop(now + 0.3);
 
-    // High sharp accent
     const osc2 = this.ctx.createOscillator();
     const gain2 = this.ctx.createGain();
     osc2.connect(gain2);
@@ -132,7 +141,7 @@ export class AudioManager {
   }
 
   isLoaded(): boolean {
-    return this.loaded;
+    return this.rawBytes !== null;
   }
 
   destroy(): void {
@@ -141,5 +150,6 @@ export class AudioManager {
       this.ctx.close();
       this.ctx = null;
     }
+    this.buffer = null;
   }
 }
