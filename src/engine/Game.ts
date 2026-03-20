@@ -156,8 +156,11 @@ export class Game {
         this.particles.clear();
         this.physics.resetCoyote();
         this.jumpBufferTimer = 0;
-        this.collectedPeaches.clear();
-        this.callbacks.onPeachCollect([], this.totalPeaches);
+        // Keep collected peaches across deaths — emit current set so HUD stays lit
+        const collectedOrdinals = Array.from(this.collectedPeaches)
+          .map(idx => this.peachOrdinalMap.get(idx))
+          .filter((o): o is number => o !== undefined);
+        this.callbacks.onPeachCollect(collectedOrdinals, this.totalPeaches);
         this.enterIdle();
       }
       return;
