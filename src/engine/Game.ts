@@ -25,7 +25,7 @@ interface GameCallbacks {
   onWin: () => void;
   onDeath: () => void;
   onProgress: (progress: number) => void;
-  onPeachCollect: (count: number, total: number) => void;
+  onPeachCollect: (collected: number[], total: number) => void;
   onIdle?: () => void;
 }
 
@@ -55,6 +55,7 @@ export class Game {
   // Peach collectibles
   private collectedPeaches = new Set<number>();
   private peachIndexMap = new Map<LevelEntity, number>();
+  private peachOrdinalMap = new Map<number, number>(); // entityIndex → ordinal (0,1,2,...)
   private totalPeaches = 0;
 
   // Pipe animation state
@@ -115,8 +116,15 @@ export class Game {
 
     // Index peaches for O(1) lookup
     this.peachIndexMap.clear();
-    this.entities.forEach((e, i) => { if (e.type === "peach") this.peachIndexMap.set(e, i); });
-    this.totalPeaches = this.peachIndexMap.size;
+    this.peachOrdinalMap.clear();
+    let ordinal = 0;
+    this.entities.forEach((e, i) => {
+      if (e.type === "peach") {
+        this.peachIndexMap.set(e, i);
+        this.peachOrdinalMap.set(i, ordinal++);
+      }
+    });
+    this.totalPeaches = ordinal;
     this.collectedPeaches.clear();
   }
 
@@ -149,7 +157,7 @@ export class Game {
         this.physics.resetCoyote();
         this.jumpBufferTimer = 0;
         this.collectedPeaches.clear();
-        this.callbacks.onPeachCollect(0, this.totalPeaches);
+        this.callbacks.onPeachCollect([], this.totalPeaches);
         this.enterIdle();
       }
       return;
@@ -314,7 +322,10 @@ export class Game {
       18
     );
     this.audio.playCollectSound();
-    this.callbacks.onPeachCollect(count, this.totalPeaches);
+    const collectedOrdinals = Array.from(this.collectedPeaches)
+      .map(idx => this.peachOrdinalMap.get(idx))
+      .filter((o): o is number => o !== undefined);
+    this.callbacks.onPeachCollect(collectedOrdinals, this.totalPeaches);
 
     // All peaches collected → win
     if (count >= this.totalPeaches) {

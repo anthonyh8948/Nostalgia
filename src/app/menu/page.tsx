@@ -70,6 +70,7 @@ export default function MenuPage() {
   const [dragOffset, setDragOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [unlockedOverrides, setUnlockedOverrides] = useState<Set<number>>(new Set());
+  const [peachVibePeaches, setPeachVibePeaches] = useState(0);
   const startX = useRef(0);
 
   useEffect(() => {
@@ -79,6 +80,8 @@ export default function MenuPage() {
       overrides.add(1);
     }
     setUnlockedOverrides(overrides);
+    const saved = parseInt(localStorage.getItem("nostalgia_peach_vibe_peaches") ?? "0");
+    if (!isNaN(saved)) setPeachVibePeaches(saved);
   }, [router]);
 
   const onDragStart = (x: number) => {
@@ -278,6 +281,16 @@ export default function MenuPage() {
 
                   {isUnlocked ? (
                     <div>
+                      {song.id === 0 && peachVibePeaches > 0 && (
+                        <div style={{ marginBottom: "14px", display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ fontSize: "10px", letterSpacing: "0.2em", color: song.accent, textTransform: "uppercase", opacity: 0.7 }}>Best run</span>
+                          <div style={{ display: "flex", gap: "3px" }}>
+                            {Array.from({ length: 5 }).map((_, i) => (
+                              <span key={i} style={{ fontSize: "12px", opacity: i < peachVibePeaches ? 1 : 0.2 }}>🍑</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <div
                         style={{
                           height: "1px",

@@ -12,7 +12,7 @@ interface GameCanvasProps {
   onWin: () => void;
   onDeath: () => void;
   onProgress: (progress: number) => void;
-  onPeachCollect: (count: number, total: number) => void;
+  onPeachCollect: (collected: number[], total: number) => void;
   onIdle?: () => void;
   isPaused: boolean;
 }
@@ -63,7 +63,7 @@ export const GameCanvas = forwardRef<GameHandle, GameCanvasProps>(
         onWin: () => callbacksRef.current.onWin(),
         onDeath: () => callbacksRef.current.onDeath(),
         onProgress: (p) => callbacksRef.current.onProgress(p),
-        onPeachCollect: (count, total) => callbacksRef.current.onPeachCollect(count, total),
+        onPeachCollect: (collected, total) => callbacksRef.current.onPeachCollect(collected, total),
         onIdle: () => callbacksRef.current.onIdle?.(),
       }, levelId ?? 0);
 

@@ -13,13 +13,13 @@ export default function PlayPage() {
   const [progress, setProgress] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [peachCount, setPeachCount] = useState(0);
+  const [collectedPeaches, setCollectedPeaches] = useState<number[]>([]);
   const [totalPeaches, setTotalPeaches] = useState(5);
   const [isIdle, setIsIdle] = useState(false);
   const [levelId, setLevelId] = useState<number | null>(null);
 
-  const handlePeachCollect = (count: number, total: number) => {
-    setPeachCount(count);
+  const handlePeachCollect = (collected: number[], total: number) => {
+    setCollectedPeaches(collected);
     setTotalPeaches(total);
   };
 
@@ -37,8 +37,8 @@ export default function PlayPage() {
   const handleWin = () => {
     if (levelId === 0) {
       localStorage.setItem("nostalgia_peach_vibe_completed", "1");
-      localStorage.setItem("nostalgia_peach_vibe_peaches", String(peachCount));
-      if (peachCount >= 3) {
+      localStorage.setItem("nostalgia_peach_vibe_peaches", String(collectedPeaches.length));
+      if (collectedPeaches.length >= 3) {
         localStorage.setItem("nostalgia_track1_unlocked", "1");
       }
     }
@@ -73,7 +73,7 @@ export default function PlayPage() {
 
       {/* HUD */}
       <div className="pointer-events-none fixed left-0 right-0 top-0 z-10 p-4">
-        <HUD progress={progress} attempts={attempts} peachCount={peachCount} totalPeaches={totalPeaches} />
+        <HUD progress={progress} attempts={attempts} collectedPeaches={collectedPeaches} totalPeaches={totalPeaches} />
       </div>
 
       {/* "Don't show again" button — shown when game is in idle/prompt state */}
