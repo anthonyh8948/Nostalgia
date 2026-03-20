@@ -1,7 +1,7 @@
 {
   "name": "Kingda Ka",
   "bpm": 138,
-  "audioSrc": "/audio/Kingda Ka.mp3",
+  "audioSrc": "/audio/Kingda Ka [Instrumental].mp3",
   "scrollSpeed": 13,
   "theme": {
     "bgTop": "#001400",

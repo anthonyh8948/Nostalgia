@@ -17,7 +17,7 @@ const SONGS = [
     id: 1,
     name: "Kingda Ka",
     label: "Track 02",
-    unlocked: false,
+    unlocked: true, // TEMP: remove after testing
     bg: "linear-gradient(160deg, #001a00 0%, #000d00 100%)",
     accent: "#00e676",
   },
