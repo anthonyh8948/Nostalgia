@@ -88,14 +88,14 @@ export class Renderer {
 
   private updateAndDrawShootingStars(): void {
     // Spawn from top-right, travel toward bottom-left
-    if (Math.random() < 0.028 && this.shootingStars.length < 8) {
+    if (Math.random() < 0.006 && this.shootingStars.length < 3) {
       this.shootingStars.push({
         x: CANVAS_WIDTH * 0.35 + Math.random() * CANVAS_WIDTH * 0.75,
         y: Math.random() * CANVAS_HEIGHT * 0.45,
-        vx: -(20 + Math.random() * 15), // negative = leftward
-        vy: 4 + Math.random() * 6,       // downward
+        vx: -(8 + Math.random() * 6), // negative = leftward
+        vy: 1.5 + Math.random() * 2.5, // downward
         life: 1,
-        decay: 0.009 + Math.random() * 0.007,
+        decay: 0.007 + Math.random() * 0.005,
         tailLen: 200 + Math.random() * 220,
         alpha: 1,
       });
