@@ -9,7 +9,6 @@ import { BackButton } from "@/components/BackButton";
 export default function PlayPage() {
   const router = useRouter();
   const gameRef = useRef<GameHandle>(null);
-  const [hasAccount, setHasAccount] = useState(false);
   const [progress, setProgress] = useState(0);
   const [attempts, setAttempts] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -18,25 +17,24 @@ export default function PlayPage() {
   const [isIdle, setIsIdle] = useState(false);
   const [levelId, setLevelId] = useState<number | null>(null);
 
-  const handlePeachCollect = (collected: number[], total: number) => {
-    // Merge: state only grows — never loses peaches even if game reinitializes
-    setCollectedPeaches(prev => {
-      const merged = new Set([...prev, ...collected]);
-      return Array.from(merged);
-    });
-    setTotalPeaches(total);
-  };
-
   useEffect(() => {
-    const userData = localStorage.getItem("nostalgia_user");
-    if (!userData) {
+    if (!localStorage.getItem("nostalgia_user")) {
       router.replace("/signup");
-    } else {
-      setHasAccount(true);
+      return;
     }
     const savedLevel = localStorage.getItem("nostalgia_selected_level");
     setLevelId(savedLevel ? parseInt(savedLevel) : 0);
   }, [router]);
+
+  const handlePeachCollect = (collected: number[], total: number) => {
+    setCollectedPeaches(collected);
+    setTotalPeaches(total);
+  };
+
+  const handleDeath = () => {
+    setCollectedPeaches([]); // guaranteed reset — belt-and-suspenders alongside die() clearing internally
+    setAttempts((a) => a + 1);
+  };
 
   const handleWin = () => {
     if (levelId === 0) {
@@ -48,18 +46,14 @@ export default function PlayPage() {
     }
     router.push("/win");
   };
-  const handleDeath = () => setAttempts((a) => a + 1);
-  const handleProgress = (p: number) => setProgress(p);
-  const handleIdle = () => setIsIdle(true);
-  const handleIdleEnd = () => setIsIdle(false);
 
   const handleDontShowAgain = () => {
     localStorage.setItem("nostalgia_skip_prompt", "1");
-    handleIdleEnd();
+    setIsIdle(false);
     gameRef.current?.start();
   };
 
-  if (!hasAccount || levelId === null) return null;
+  if (levelId === null) return null;
 
   return (
     <div className="h-dvh w-dvw overflow-hidden bg-bg">
@@ -69,9 +63,10 @@ export default function PlayPage() {
         levelId={levelId}
         onWin={handleWin}
         onDeath={handleDeath}
-        onProgress={handleProgress}
+        onProgress={setProgress}
         onPeachCollect={handlePeachCollect}
-        onIdle={handleIdle}
+        onIdle={() => setIsIdle(true)}
+        onIdleEnd={() => setIsIdle(false)}
         isPaused={isPaused}
       />
 

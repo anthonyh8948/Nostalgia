@@ -81,7 +81,7 @@ export default function MenuPage() {
     }
     setUnlockedOverrides(overrides);
     const saved = parseInt(localStorage.getItem("nostalgia_peach_vibe_peaches") ?? "0");
-    if (!isNaN(saved)) setPeachVibePeaches(saved);
+    if (!isNaN(saved)) setPeachVibePeaches(Math.min(saved, 5));
   }, [router]);
 
   const onDragStart = (x: number) => {
@@ -173,24 +173,76 @@ export default function MenuPage() {
                 }}
                 style={{
                   position: "absolute",
-                  width: "270px",
-                  height: "360px",
-                  borderRadius: "20px",
-                  background: song.bg,
-                  border: `1px solid ${song.accent}30`,
-                  boxShadow: isActive
-                    ? `0 0 50px ${song.accent}28, 0 24px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05)`
-                    : "0 10px 30px rgba(0,0,0,0.5)",
                   transform: `translateX(${offset}px) scale(${scale})`,
                   transition: dragging
                     ? "opacity 0.2s, box-shadow 0.2s"
                     : "transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.3s, box-shadow 0.3s",
                   opacity,
                   zIndex,
-                  overflow: "hidden",
                   cursor: isActive && isUnlocked ? "pointer" : dist === 0 ? "default" : "pointer",
                 }}
               >
+                {/* Ghost deck cards — album card only */}
+                {song.sparkle && (
+                  <>
+                    {/* Back card — leaning left */}
+                    <div style={{
+                      position: "absolute",
+                      width: "270px",
+                      height: "360px",
+                      borderRadius: "20px",
+                      background: song.bg,
+                      border: `1px solid ${song.accent}18`,
+                      transform: "rotate(-6deg) translate(-10px, 10px)",
+                      boxShadow: isActive
+                        ? `0 0 30px ${song.accent}10, 0 18px 40px rgba(0,0,0,0.55)`
+                        : "0 8px 24px rgba(0,0,0,0.45)",
+                      opacity: isActive ? 0.85 : 0.5,
+                    }}>
+                      <div style={{ position: "absolute", bottom: 24, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
+                        <div style={{ width: 32, height: 2, borderRadius: 1, background: `${song.accent}40` }} />
+                      </div>
+                    </div>
+                    {/* Middle card — leaning right */}
+                    <div style={{
+                      position: "absolute",
+                      width: "270px",
+                      height: "360px",
+                      borderRadius: "20px",
+                      background: song.bg,
+                      border: `1px solid ${song.accent}25`,
+                      transform: "rotate(4deg) translate(10px, 6px)",
+                      boxShadow: isActive
+                        ? `0 0 40px ${song.accent}16, 0 20px 48px rgba(0,0,0,0.6)`
+                        : "0 10px 28px rgba(0,0,0,0.5)",
+                      opacity: isActive ? 0.9 : 0.55,
+                    }}>
+                      <div style={{ position: "absolute", bottom: 24, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
+                        <div style={{ width: 32, height: 2, borderRadius: 1, background: `${song.accent}50` }} />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Main card */}
+                <div
+                  style={{
+                    position: "relative",
+                    width: "270px",
+                    height: "360px",
+                    borderRadius: "20px",
+                    background: song.bg,
+                    border: `1px solid ${song.accent}30`,
+                    boxShadow: isActive
+                      ? `0 0 50px ${song.accent}28, 0 24px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05)`
+                      : "0 10px 30px rgba(0,0,0,0.5)",
+                    overflow: "hidden",
+                    transform: song.sparkle && isActive
+                      ? "perspective(700px) rotateY(-5deg) rotateX(2deg)"
+                      : undefined,
+                    transition: "transform 0.5s ease",
+                  }}
+                >
                 {/* Shimmer on locked cards */}
                 {!isUnlocked && isActive && (
                   <div
@@ -329,6 +381,7 @@ export default function MenuPage() {
                   ) : (
                     <LockedSection accent={song.accent} active={isActive} />
                   )}
+                </div>
                 </div>
               </div>
             );

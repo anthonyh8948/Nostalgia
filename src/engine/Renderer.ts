@@ -34,9 +34,17 @@ const DEFAULT_THEME: LevelTheme = {
   deathFlash: "#e040fb",
 };
 
+interface ShootingStar {
+  x: number; y: number;
+  vx: number; vy: number;
+  life: number; decay: number;
+  tailLen: number; alpha: number;
+}
+
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private stars: { x: number; y: number; size: number; alpha: number }[] = [];
+  private shootingStars: ShootingStar[] = [];
   private theme: LevelTheme = DEFAULT_THEME;
 
   setTheme(theme: Partial<LevelTheme>): void {
@@ -75,6 +83,69 @@ export class Renderer {
       this.ctx.fill();
     }
     this.ctx.globalAlpha = 1;
+    this.updateAndDrawShootingStars();
+  }
+
+  private updateAndDrawShootingStars(): void {
+    // Spawn from top-right, travel toward bottom-left
+    if (Math.random() < 0.028 && this.shootingStars.length < 8) {
+      this.shootingStars.push({
+        x: CANVAS_WIDTH * 0.35 + Math.random() * CANVAS_WIDTH * 0.75,
+        y: Math.random() * CANVAS_HEIGHT * 0.45,
+        vx: -(20 + Math.random() * 15), // negative = leftward
+        vy: 4 + Math.random() * 6,       // downward
+        life: 1,
+        decay: 0.009 + Math.random() * 0.007,
+        tailLen: 200 + Math.random() * 220,
+        alpha: 1,
+      });
+    }
+
+    for (let i = this.shootingStars.length - 1; i >= 0; i--) {
+      const s = this.shootingStars[i];
+      s.x += s.vx;
+      s.y += s.vy;
+      s.life -= s.decay;
+      if (s.life <= 0 || s.x < -300) {
+        this.shootingStars.splice(i, 1);
+        continue;
+      }
+
+      // Tail trails behind the head (opposite direction of travel)
+      const angle = Math.atan2(s.vy, s.vx);
+      const tx = s.x - Math.cos(angle) * s.tailLen;
+      const ty = s.y - Math.sin(angle) * s.tailLen;
+
+      // Pure white streak fading to transparent at the tail
+      const grad = this.ctx.createLinearGradient(tx, ty, s.x, s.y);
+      grad.addColorStop(0, "rgba(255,255,255,0)");
+      grad.addColorStop(0.55, `rgba(255,255,255,${s.life * 0.4})`);
+      grad.addColorStop(0.85, `rgba(255,255,255,${s.life * 0.85})`);
+      grad.addColorStop(1, `rgba(255,255,255,${s.life})`);
+
+      this.ctx.strokeStyle = grad;
+      this.ctx.lineWidth = 3;
+      this.ctx.beginPath();
+      this.ctx.moveTo(tx, ty);
+      this.ctx.lineTo(s.x, s.y);
+      this.ctx.stroke();
+
+      // Soft outer glow around head
+      this.ctx.globalAlpha = s.life * 0.25;
+      this.ctx.fillStyle = "#ffffff";
+      this.ctx.beginPath();
+      this.ctx.arc(s.x, s.y, 9, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      // Bright core
+      this.ctx.globalAlpha = s.life;
+      this.ctx.fillStyle = "#ffffff";
+      this.ctx.beginPath();
+      this.ctx.arc(s.x, s.y, 3, 0, Math.PI * 2);
+      this.ctx.fill();
+
+      this.ctx.globalAlpha = 1;
+    }
   }
 
   drawGrid(camera: Camera): void {
@@ -291,6 +362,49 @@ export class Renderer {
     this.ctx.globalAlpha = 1;
   }
 
+  drawEndBox(screenX: number, width: number): void {
+    const wall = 14;
+    const floorY = GROUND_Y + 80;
+    const depth = CANVAS_HEIGHT - GROUND_Y + 20;
+
+    this.ctx.shadowColor = this.theme.portalGlow;
+    this.ctx.shadowBlur = 24;
+    this.ctx.fillStyle = "#1a0a1a";
+    this.ctx.strokeStyle = this.theme.portal;
+    this.ctx.lineWidth = 3;
+
+    // Left wall
+    this.ctx.beginPath();
+    this.ctx.roundRect(screenX - wall, GROUND_Y, wall, depth, [0, 0, 4, 4]);
+    this.ctx.fill();
+    this.ctx.stroke();
+
+    // Right wall
+    this.ctx.beginPath();
+    this.ctx.roundRect(screenX + width, GROUND_Y, wall, depth, [0, 0, 4, 4]);
+    this.ctx.fill();
+    this.ctx.stroke();
+
+    // Floor
+    this.ctx.beginPath();
+    this.ctx.roundRect(screenX - wall, floorY, width + wall * 2, wall, 4);
+    this.ctx.fill();
+    this.ctx.stroke();
+
+    this.ctx.shadowBlur = 0;
+
+    // Floor glow line
+    this.ctx.shadowColor = this.theme.groundLine;
+    this.ctx.shadowBlur = 10;
+    this.ctx.strokeStyle = this.theme.groundLine;
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.moveTo(screenX - wall, floorY);
+    this.ctx.lineTo(screenX + width + wall, floorY);
+    this.ctx.stroke();
+    this.ctx.shadowBlur = 0;
+  }
+
   drawPeach(screenX: number, heightAboveGround: number): void {
     const bob = Math.sin(Date.now() * 0.0025) * 4;
     const cx = screenX;
@@ -336,6 +450,9 @@ export class Renderer {
           break;
         case "pipe":
           this.drawPipe(screenX, GROUND_Y);
+          break;
+        case "endbox":
+          this.drawEndBox(screenX, entity.width ?? 320);
           break;
         case "peach":
           this.drawPeach(screenX, entity.y ?? 20);

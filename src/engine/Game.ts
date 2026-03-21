@@ -27,10 +27,10 @@ interface GameCallbacks {
   onProgress: (progress: number) => void;
   onPeachCollect: (collected: number[], total: number) => void;
   onIdle?: () => void;
+  onIdleEnd?: () => void;
 }
 
 export class Game {
-  private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private loop: GameLoop;
   private input: InputManager;
@@ -64,12 +64,15 @@ export class Game {
   private pipeX = 0;
   private winFlash = 0;
 
+  // Box landing animation state
+  private boxAnimTimer = 0;
+  private boxAnimDuration = 60; // 1 second at 60fps
+
   // Jump buffering — remembers press for several frames so it fires on landing
   private jumpBufferTimer = 0;
   private readonly JUMP_BUFFER_FRAMES = 6; // ~100ms at 60fps
 
   constructor(canvas: HTMLCanvasElement, callbacks: GameCallbacks, levelId = 0) {
-    this.canvas = canvas;
     this.ctx = canvas.getContext("2d")!;
     this.callbacks = callbacks;
     this.levelId = levelId;
@@ -109,10 +112,11 @@ export class Game {
     }
     this.entities = data.entities as LevelEntity[];
 
-    // Find level end (pipe or portal position)
+    // Find level end (pipe, portal, or endbox position)
     const pipe = this.entities.find((e) => e.type === "pipe");
     const portal = this.entities.find((e) => e.type === "portal");
-    this.levelEnd = pipe ? pipe.x : portal ? portal.x : 3000;
+    const endbox = this.entities.find((e) => e.type === "endbox");
+    this.levelEnd = pipe ? pipe.x : portal ? portal.x : endbox ? endbox.x : 3000;
 
     // Index peaches for O(1) lookup
     this.peachIndexMap.clear();
@@ -129,6 +133,19 @@ export class Game {
   }
 
   private update(_dt: number): void {
+    // Box landing animation
+    if (this.state === "entering_box") {
+      this.boxAnimTimer++;
+      const progress = this.boxAnimTimer / this.boxAnimDuration;
+      if (progress > 0.5) {
+        this.winFlash = (progress - 0.5) / 0.5;
+      }
+      if (this.boxAnimTimer >= this.boxAnimDuration) {
+        this.win();
+      }
+      return;
+    }
+
     // Pipe entrance animation
     if (this.state === "entering_pipe") {
       this.pipeAnimTimer++;
@@ -156,11 +173,6 @@ export class Game {
         this.particles.clear();
         this.physics.resetCoyote();
         this.jumpBufferTimer = 0;
-        // Keep collected peaches across deaths — emit current set so HUD stays lit
-        const collectedOrdinals = Array.from(this.collectedPeaches)
-          .map(idx => this.peachOrdinalMap.get(idx))
-          .filter((o): o is number => o !== undefined);
-        this.callbacks.onPeachCollect(collectedOrdinals, this.totalPeaches);
         this.enterIdle();
       }
       return;
@@ -170,6 +182,8 @@ export class Game {
       if (this.input.consumePress()) {
         this.state = "playing";
         this.audio.play();
+        this.jumpBufferTimer = this.JUMP_BUFFER_FRAMES; // first tap starts AND queues a jump
+        this.callbacks.onIdleEnd?.();
       }
       return;
     }
@@ -221,7 +235,23 @@ export class Game {
       const worldX = entity.x;
       const screenX = this.camera.worldToScreen(worldX);
 
-      // Only check nearby entities
+      // Endbox uses world-space check — must run before the screen proximity filter
+      if (entity.type === "endbox") {
+        const playerCenter = this.player.worldX + PLAYER_SIZE / 2;
+        const boxEnd = entity.x + (entity.width ?? 320);
+        if (playerCenter >= entity.x && playerCenter <= boxEnd) {
+          const boxFloorY = GROUND_Y + 80;
+          if (this.player.y + PLAYER_SIZE >= boxFloorY) {
+            this.player.y = boxFloorY - PLAYER_SIZE;
+            this.player.vy = 0;
+            this.enterBox();
+            return;
+          }
+        }
+        continue;
+      }
+
+      // Only check nearby entities (screen-space proximity)
       if (Math.abs(screenX - this.player.x) > 200) continue;
 
       if (entity.type === "spike") {
@@ -295,6 +325,11 @@ export class Game {
       const pipeScreenX = this.camera.worldToScreen(this.pipeX);
       this.renderer.drawPipeAnimation(this.player, pipeScreenX, progress);
       this.renderer.drawWinFlash(this.winFlash);
+    } else if (this.state === "entering_box") {
+      // Player sits in the box, fade to white
+      this.renderer.drawTrail(this.player.trail);
+      this.renderer.drawPlayer(this.player);
+      this.renderer.drawWinFlash(this.winFlash);
     } else if (this.state === "idle") {
       this.renderer.drawPlayer(this.player);
       this.renderer.drawStartPrompt();
@@ -307,6 +342,12 @@ export class Game {
     this.renderer.drawDeathFlash(this.deathFlash);
   }
 
+  private enterBox(): void {
+    this.state = "entering_box";
+    this.boxAnimTimer = 0;
+    this.winFlash = 0;
+  }
+
   private enterPipe(pipeWorldX: number): void {
     this.state = "entering_pipe";
     this.pipeX = pipeWorldX;
@@ -316,7 +357,6 @@ export class Game {
 
   private collectPeach(entityIndex: number): void {
     this.collectedPeaches.add(entityIndex);
-    const count = this.collectedPeaches.size;
 
     // Burst particles at player center
     this.particles.burst(
@@ -329,11 +369,6 @@ export class Game {
       .map(idx => this.peachOrdinalMap.get(idx))
       .filter((o): o is number => o !== undefined);
     this.callbacks.onPeachCollect(collectedOrdinals, this.totalPeaches);
-
-    // All peaches collected → win
-    if (count >= this.totalPeaches) {
-      this.enterPipe(this.player.worldX + 200);
-    }
   }
 
   private die(): void {
@@ -343,6 +378,10 @@ export class Game {
 
     // Dissolve player into colored tiles
     this.particles.dissolve(this.player.x, this.player.y, PLAYER_SIZE);
+
+    // Reset peaches immediately on death so HUD clears right away
+    this.collectedPeaches.clear();
+    this.callbacks.onPeachCollect([], this.totalPeaches);
 
     this.audio.stop();
     this.audio.playDeathSound();

@@ -14,17 +14,18 @@ interface GameCanvasProps {
   onProgress: (progress: number) => void;
   onPeachCollect: (collected: number[], total: number) => void;
   onIdle?: () => void;
+  onIdleEnd?: () => void;
   isPaused: boolean;
 }
 
 export const GameCanvas = forwardRef<GameHandle, GameCanvasProps>(
-  function GameCanvas({ levelId, onWin, onDeath, onProgress, onPeachCollect, onIdle, isPaused }, ref) {
+  function GameCanvas({ levelId, onWin, onDeath, onProgress, onPeachCollect, onIdle, onIdleEnd, isPaused }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const gameRef = useRef<Game | null>(null);
     const [size, setSize] = useState({ w: 1120, h: 630 });
 
-    const callbacksRef = useRef({ onWin, onDeath, onProgress, onPeachCollect, onIdle });
-    callbacksRef.current = { onWin, onDeath, onProgress, onPeachCollect, onIdle };
+    const callbacksRef = useRef({ onWin, onDeath, onProgress, onPeachCollect, onIdle, onIdleEnd });
+    callbacksRef.current = { onWin, onDeath, onProgress, onPeachCollect, onIdle, onIdleEnd };
 
     useImperativeHandle(ref, () => ({
       start: () => gameRef.current?.start(),
@@ -65,6 +66,7 @@ export const GameCanvas = forwardRef<GameHandle, GameCanvasProps>(
         onProgress: (p) => callbacksRef.current.onProgress(p),
         onPeachCollect: (collected, total) => callbacksRef.current.onPeachCollect(collected, total),
         onIdle: () => callbacksRef.current.onIdle?.(),
+        onIdleEnd: () => callbacksRef.current.onIdleEnd?.(),
       }, levelId ?? 0);
 
       gameRef.current = game;
