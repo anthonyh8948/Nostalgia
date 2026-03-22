@@ -487,6 +487,125 @@ export class Renderer {
     this.ctx.globalAlpha = 1;
   }
 
+  drawCoasterLaunch(timer: number, duration: number): void {
+    const progress = timer / duration;
+    const cartCx = CANVAS_WIDTH * 0.25 + PLAYER_SIZE / 2;
+    const cartCy = GROUND_Y - 25;
+
+    // Speed lines sweeping right-to-left (wind effect of fast launch)
+    const lineCount = 20;
+    for (let i = 0; i < lineCount; i++) {
+      const phase = ((i / lineCount) + timer * 0.025) % 1;
+      const lx = (1 - phase) * (CANVAS_WIDTH + 200) - 100;
+      const ly = GROUND_Y - 12 - (i % 6) * 28;
+      const len = 55 + (i % 4) * 35;
+      this.ctx.globalAlpha = (0.12 + (i % 3) * 0.1) * Math.min(1, progress * 8);
+      this.ctx.strokeStyle = "#ffe600";
+      this.ctx.lineWidth = 1 + (i % 2);
+      this.ctx.beginPath();
+      this.ctx.moveTo(lx, ly);
+      this.ctx.lineTo(lx + len, ly);
+      this.ctx.stroke();
+    }
+    this.ctx.globalAlpha = 1;
+
+    // Shake at start of launch
+    const shake = progress < 0.2 ? Math.sin(timer * 1.4) * 4 * (1 - progress / 0.2) : 0;
+    this.drawCoasterCart(cartCx + shake, cartCy);
+  }
+
+  drawCoasterRise(timer: number, duration: number): void {
+    const progress = timer / duration;
+    const towerCx = CANVAS_WIDTH * 0.5;
+    this.drawCoasterTower(towerCx);
+
+    // Ease: fast start, decelerates near top
+    const eased = 1 - Math.pow(1 - progress, 1.5);
+    const cartCy = GROUND_Y - 25 - eased * (CANVAS_HEIGHT + 80);
+    this.drawCoasterCart(towerCx, cartCy);
+  }
+
+  drawCoasterFall(timer: number, duration: number, winFlash: number): void {
+    const progress = timer / duration;
+    const towerCx = CANVAS_WIDTH * 0.5;
+    this.drawCoasterTower(towerCx);
+
+    // Hold at top for first 15%, then accelerate downward
+    let cartCy: number;
+    if (progress < 0.15) {
+      cartCy = -PLAYER_SIZE;
+    } else {
+      const fall = (progress - 0.15) / 0.85;
+      cartCy = -PLAYER_SIZE + Math.pow(fall, 1.8) * (GROUND_Y - PLAYER_SIZE + 25);
+    }
+    this.drawCoasterCart(towerCx, cartCy);
+    this.drawWinFlash(winFlash);
+  }
+
+  private drawCoasterTower(cx: number): void {
+    const w = 52;
+    const tx = cx - w / 2;
+
+    this.ctx.shadowColor = "#00e676";
+    this.ctx.shadowBlur = 14;
+    this.ctx.fillStyle = "#0a2a0a";
+    this.ctx.fillRect(tx, -300, w, CANVAS_HEIGHT + 400);
+    this.ctx.strokeStyle = "#00e676";
+    this.ctx.lineWidth = 2;
+    this.ctx.strokeRect(tx, -300, w, CANVAS_HEIGHT + 400);
+    this.ctx.shadowBlur = 0;
+
+    // Horizontal crossbeams
+    this.ctx.strokeStyle = "rgba(0, 230, 118, 0.32)";
+    this.ctx.lineWidth = 1;
+    for (let y = 0; y < CANVAS_HEIGHT; y += 70) {
+      this.ctx.beginPath();
+      this.ctx.moveTo(tx, y);
+      this.ctx.lineTo(tx + w, y);
+      this.ctx.stroke();
+    }
+  }
+
+  private drawCoasterCart(cx: number, cy: number): void {
+    const cartW = 72;
+    const cartH = 36;
+    const wheelR = 9;
+
+    this.ctx.shadowColor = "rgba(255, 230, 0, 0.7)";
+    this.ctx.shadowBlur = 22;
+    this.ctx.fillStyle = "#ffe600";
+    this.ctx.beginPath();
+    this.ctx.roundRect(cx - cartW / 2, cy - cartH / 2, cartW, cartH, 7);
+    this.ctx.fill();
+    this.ctx.shadowBlur = 0;
+
+    // White inset border
+    this.ctx.strokeStyle = "rgba(255,255,255,0.5)";
+    this.ctx.lineWidth = 2;
+    this.ctx.beginPath();
+    this.ctx.roundRect(cx - cartW / 2 + 3, cy - cartH / 2 + 3, cartW - 6, cartH - 6, 5);
+    this.ctx.stroke();
+
+    // Wheels
+    const wheelY = cy + cartH / 2;
+    for (const dx of [-cartW / 3, cartW / 3]) {
+      this.ctx.fillStyle = "#222";
+      this.ctx.beginPath();
+      this.ctx.arc(cx + dx, wheelY, wheelR, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.strokeStyle = "#ffe600";
+      this.ctx.lineWidth = 2;
+      this.ctx.beginPath();
+      this.ctx.arc(cx + dx, wheelY, wheelR, 0, Math.PI * 2);
+      this.ctx.stroke();
+      this.ctx.fillStyle = "#ffe600";
+      this.ctx.beginPath();
+      this.ctx.arc(cx + dx, wheelY, 3, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+    this.ctx.shadowBlur = 0;
+  }
+
   drawStartPrompt(): void {
     const cx = CANVAS_WIDTH / 2;
     const cy = CANVAS_HEIGHT / 2;

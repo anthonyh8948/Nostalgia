@@ -34,7 +34,7 @@ export const COLORS = {
 } as const;
 
 // Game states
-export type GameState = "idle" | "playing" | "dead" | "entering_pipe" | "entering_box" | "won";
+export type GameState = "idle" | "playing" | "dead" | "entering_pipe" | "entering_box" | "won" | "coaster_launch" | "coaster_rise" | "coaster_fall";
 
 // Coupon code (placeholder)
 export const COUPON_CODE = "NOSTALGIA500";

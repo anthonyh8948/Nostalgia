@@ -68,6 +68,12 @@ export class Game {
   private boxAnimTimer = 0;
   private boxAnimDuration = 60; // 1 second at 60fps
 
+  // Kingda Ka coaster animation state
+  private coasterTimer = 0;
+  private readonly coasterLaunchDuration = 300; // 5s
+  private readonly coasterRiseDuration = 240;   // 4s
+  private readonly coasterFallDuration = 180;   // 3s
+
   // Jump buffering — remembers press for several frames so it fires on landing
   private jumpBufferTimer = 0;
   private readonly JUMP_BUFFER_FRAMES = 6; // ~100ms at 60fps
@@ -112,11 +118,12 @@ export class Game {
     }
     this.entities = data.entities as LevelEntity[];
 
-    // Find level end (pipe, portal, or endbox position)
+    // Find level end (pipe, portal, endbox, or coaster position)
     const pipe = this.entities.find((e) => e.type === "pipe");
     const portal = this.entities.find((e) => e.type === "portal");
     const endbox = this.entities.find((e) => e.type === "endbox");
-    this.levelEnd = pipe ? pipe.x : portal ? portal.x : endbox ? endbox.x : 3000;
+    const coaster = this.entities.find((e) => e.type === "coaster");
+    this.levelEnd = pipe ? pipe.x : portal ? portal.x : endbox ? endbox.x : coaster ? coaster.x : 3000;
 
     // Index peaches for O(1) lookup
     this.peachIndexMap.clear();
@@ -157,6 +164,37 @@ export class Game {
       }
 
       if (this.pipeAnimTimer >= this.pipeAnimDuration) {
+        this.win();
+      }
+      return;
+    }
+
+    // Coaster animation phases
+    if (this.state === "coaster_launch") {
+      this.coasterTimer++;
+      if (this.coasterTimer >= this.coasterLaunchDuration) {
+        this.state = "coaster_rise";
+        this.coasterTimer = 0;
+      }
+      return;
+    }
+
+    if (this.state === "coaster_rise") {
+      this.coasterTimer++;
+      if (this.coasterTimer >= this.coasterRiseDuration) {
+        this.state = "coaster_fall";
+        this.coasterTimer = 0;
+      }
+      return;
+    }
+
+    if (this.state === "coaster_fall") {
+      this.coasterTimer++;
+      const progress = this.coasterTimer / this.coasterFallDuration;
+      if (progress > 0.6) {
+        this.winFlash = (progress - 0.6) / 0.4;
+      }
+      if (this.coasterTimer >= this.coasterFallDuration) {
         this.win();
       }
       return;
@@ -251,6 +289,15 @@ export class Game {
         continue;
       }
 
+      // Coaster trigger — world-space check like endbox
+      if (entity.type === "coaster") {
+        if (this.player.worldX + PLAYER_SIZE / 2 >= entity.x) {
+          this.enterCoaster();
+          return;
+        }
+        continue;
+      }
+
       // Only check nearby entities (screen-space proximity)
       if (Math.abs(screenX - this.player.x) > 200) continue;
 
@@ -313,10 +360,13 @@ export class Game {
     this.renderer.drawGrid(this.camera);
     this.renderer.drawGround(this.camera, this.entities);
 
-    // Filter out collected peaches before rendering
-    const visibleEntities = this.entities.filter(
-      (e, i) => e.type !== "peach" || !this.collectedPeaches.has(i)
-    );
+    // Filter out collected peaches, coaster trigger, and all entities during cinematic phases
+    const isCoasterState = this.state === "coaster_launch" || this.state === "coaster_rise" || this.state === "coaster_fall";
+    const visibleEntities = isCoasterState
+      ? []
+      : this.entities.filter(
+          (e, i) => (e.type !== "peach" || !this.collectedPeaches.has(i)) && e.type !== "coaster"
+        );
     this.renderer.drawEntities(this.camera, visibleEntities);
 
     if (this.state === "entering_pipe") {
@@ -333,6 +383,12 @@ export class Game {
     } else if (this.state === "idle") {
       this.renderer.drawPlayer(this.player);
       this.renderer.drawStartPrompt();
+    } else if (this.state === "coaster_launch") {
+      this.renderer.drawCoasterLaunch(this.coasterTimer, this.coasterLaunchDuration);
+    } else if (this.state === "coaster_rise") {
+      this.renderer.drawCoasterRise(this.coasterTimer, this.coasterRiseDuration);
+    } else if (this.state === "coaster_fall") {
+      this.renderer.drawCoasterFall(this.coasterTimer, this.coasterFallDuration, this.winFlash);
     } else {
       this.renderer.drawTrail(this.player.trail);
       this.renderer.drawPlayer(this.player);
@@ -393,6 +449,12 @@ export class Game {
     this.audio.stop();
     this.loop.stop();
     this.callbacks.onWin();
+  }
+
+  private enterCoaster(): void {
+    this.state = "coaster_launch";
+    this.coasterTimer = 0;
+    this.winFlash = 0;
   }
 
   private enterIdle(): void {
