@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // ← Your email address — you'll get notified here
-const NOTIFY_EMAIL = "tony@tonyhaasmusic.com";
+const NOTIFY_EMAIL = "anthonyh8948@icloud.com";
 
 export async function POST(req: Request) {
   const { name, contact } = await req.json();
