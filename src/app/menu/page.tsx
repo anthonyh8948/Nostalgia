@@ -64,6 +64,8 @@ const SONGS = [
   },
 ] as Array<{ id: number; name: string; label: string; unlocked: boolean; bg: string; accent: string; sparkle?: boolean }>;
 
+const CORRECT_PASSCODE = "7272"; // ← change this to your desired passcode
+
 export default function MenuPage() {
   const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(0);
@@ -71,6 +73,9 @@ export default function MenuPage() {
   const [dragging, setDragging] = useState(false);
   const [unlockedOverrides, setUnlockedOverrides] = useState<Set<number>>(new Set());
   const [peachVibePeaches, setPeachVibePeaches] = useState(0);
+  const [showPasscodeModal, setShowPasscodeModal] = useState(false);
+  const [passcodeInput, setPasscodeInput] = useState("");
+  const [passcodeError, setPasscodeError] = useState(false);
   const startX = useRef(0);
 
   useEffect(() => {
@@ -166,10 +171,15 @@ export default function MenuPage() {
               <div
                 key={song.id}
                 onClick={() => {
-                  if (isActive && isUnlocked) {
+                  if (!isActive) { setActiveIndex(i); return; }
+                  if (isUnlocked) {
                     localStorage.setItem("nostalgia_selected_level", String(song.id));
                     router.push("/play");
-                  } else if (!isActive) setActiveIndex(i);
+                  } else if (song.sparkle) {
+                    setPasscodeInput("");
+                    setPasscodeError(false);
+                    setShowPasscodeModal(true);
+                  }
                 }}
                 style={{
                   position: "absolute",
@@ -334,6 +344,7 @@ export default function MenuPage() {
                   {isUnlocked ? (
                     <div>
                       {song.id === 0 && (
+
                         <div style={{ marginBottom: "14px" }}>
                           <p style={{ fontSize: "11px", letterSpacing: "0.15em", color: song.accent, textTransform: "uppercase", margin: "0 0 6px 0", opacity: 0.85 }}>
                             {peachVibePeaches > 0
@@ -379,7 +390,7 @@ export default function MenuPage() {
                       </button>
                     </div>
                   ) : (
-                    <LockedSection accent={song.accent} active={isActive} />
+                    <LockedSection accent={song.accent} active={isActive} isAlbum={!!song.sparkle} />
                   )}
                 </div>
                 </div>
@@ -421,20 +432,34 @@ export default function MenuPage() {
           swipe to explore
         </p>
       </div>
+
+      {/* Passcode modal */}
+      {showPasscodeModal && (
+        <PasscodeModal
+          onClose={() => setShowPasscodeModal(false)}
+          passcodeInput={passcodeInput}
+          setPasscodeInput={setPasscodeInput}
+          passcodeError={passcodeError}
+          onSubmit={() => {
+            if (passcodeInput === CORRECT_PASSCODE) {
+              localStorage.setItem("nostalgia_album_unlocked", "1");
+              setShowPasscodeModal(false);
+              setUnlockedOverrides((prev) => new Set([...prev, 6]));
+            } else {
+              setPasscodeError(true);
+              setPasscodeInput("");
+            }
+          }}
+        />
+      )}
     </>
   );
 }
 
-function LockedSection({ accent, active }: { accent: string; active: boolean }) {
+function LockedSection({ accent, active, isAlbum }: { accent: string; active: boolean; isAlbum?: boolean }) {
   return (
     <div style={{ textAlign: "center", paddingBottom: "8px" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          marginBottom: "14px",
-        }}
-      >
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: "14px" }}>
         <div
           style={{
             width: "60px",
@@ -461,31 +486,175 @@ function LockedSection({ accent, active }: { accent: string; active: boolean }) 
               animation: active ? "lockPulse 2.8s ease-in-out infinite" : "none",
             }}
           >
-            <svg width="20" height="22" viewBox="0 0 20 22" fill="none">
-              <rect x="3" y="10" width="14" height="10" rx="2.5" fill={accent} opacity="0.85" />
-              <path
-                d="M6 10V7a4 4 0 0 1 8 0v3"
-                stroke={accent}
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-              <circle cx="10" cy="15" r="1.5" fill="#000" opacity="0.5" />
-            </svg>
+            {isAlbum ? (
+              /* Unlocked padlock — shackle open on right side */
+              <svg width="20" height="22" viewBox="0 0 20 22" fill="none">
+                <rect x="3" y="10" width="14" height="10" rx="2.5" fill={accent} opacity="0.85" />
+                <path
+                  d="M6 10V7a4 4 0 0 1 8 0"
+                  stroke={accent}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+                <circle cx="10" cy="15" r="1.5" fill="#000" opacity="0.5" />
+              </svg>
+            ) : (
+              /* Locked padlock */
+              <svg width="20" height="22" viewBox="0 0 20 22" fill="none">
+                <rect x="3" y="10" width="14" height="10" rx="2.5" fill={accent} opacity="0.85" />
+                <path d="M6 10V7a4 4 0 0 1 8 0v3" stroke={accent} strokeWidth="2" strokeLinecap="round" />
+                <circle cx="10" cy="15" r="1.5" fill="#000" opacity="0.5" />
+              </svg>
+            )}
           </div>
         </div>
       </div>
 
-      <p
+      <p style={{ fontSize: "10px", letterSpacing: "0.3em", color: accent, textTransform: "uppercase", opacity: 0.6 }}>
+        {isAlbum ? "Tap to Unlock" : "Coming Soon"}
+      </p>
+    </div>
+  );
+}
+
+function PasscodeModal({
+  onClose,
+  passcodeInput,
+  setPasscodeInput,
+  passcodeError,
+  onSubmit,
+}: {
+  onClose: () => void;
+  passcodeInput: string;
+  setPasscodeInput: (v: string) => void;
+  passcodeError: boolean;
+  onSubmit: () => void;
+}) {
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 50,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0,0,0,0.80)",
+        backdropFilter: "blur(6px)",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
         style={{
-          fontSize: "10px",
-          letterSpacing: "0.3em",
-          color: accent,
-          textTransform: "uppercase",
-          opacity: 0.6,
+          width: "300px",
+          padding: "36px 28px",
+          borderRadius: "20px",
+          background: "#0e0018",
+          border: "1px solid rgba(255,20,147,0.25)",
+          boxShadow: "0 0 60px rgba(255,20,147,0.12), 0 24px 60px rgba(0,0,0,0.7)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "20px",
         }}
       >
-        Coming Soon
-      </p>
+        {/* Header */}
+        <div style={{ textAlign: "center" }}>
+          <p style={{ fontSize: "10px", letterSpacing: "0.35em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", margin: 0 }}>
+            72 Hours in Vegas
+          </p>
+          <h2 style={{ fontSize: "18px", fontWeight: "bold", color: "#fff", margin: "8px 0 0", letterSpacing: "0.05em" }}>
+            Enter Passcode
+          </h2>
+        </div>
+
+        {/* Input */}
+        <input
+          autoFocus
+          type="password"
+          value={passcodeInput}
+          onChange={(e) => setPasscodeInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && onSubmit()}
+          placeholder="••••"
+          maxLength={20}
+          style={{
+            width: "100%",
+            padding: "13px 16px",
+            background: "rgba(255,255,255,0.05)",
+            border: `1px solid ${passcodeError ? "rgba(255,60,60,0.6)" : "rgba(255,255,255,0.12)"}`,
+            borderRadius: "12px",
+            color: "#fff",
+            fontSize: "20px",
+            letterSpacing: "0.3em",
+            textAlign: "center",
+            outline: "none",
+            boxSizing: "border-box",
+          }}
+        />
+
+        {/* Error message */}
+        {passcodeError && (
+          <p style={{ margin: 0, fontSize: "12px", color: "rgba(255,80,80,0.9)", letterSpacing: "0.05em" }}>
+            Incorrect passcode
+          </p>
+        )}
+
+        {/* Submit */}
+        <button
+          onClick={onSubmit}
+          style={{
+            width: "100%",
+            padding: "13px",
+            background: "#ff1493",
+            border: "none",
+            borderRadius: "12px",
+            color: "#000",
+            fontWeight: "bold",
+            fontSize: "12px",
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            cursor: "pointer",
+            boxShadow: "0 0 20px rgba(255,20,147,0.4)",
+          }}
+        >
+          Unlock
+        </button>
+
+        {/* Request Password — shown after a wrong attempt */}
+        {passcodeError && (
+          <a
+            href="mailto:tony@tonyhaasmusic.com"
+            style={{
+              fontSize: "11px",
+              color: "rgba(255,255,255,0.45)",
+              letterSpacing: "0.1em",
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+          >
+            Request Password
+          </a>
+        )}
+
+        {/* Cancel */}
+        <button
+          onClick={onClose}
+          style={{
+            background: "none",
+            border: "none",
+            color: "rgba(255,255,255,0.3)",
+            fontSize: "11px",
+            letterSpacing: "0.15em",
+            textTransform: "uppercase",
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }
