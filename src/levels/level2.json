@@ -179,7 +179,7 @@
     { "type": "spike", "x": 47200 },
     { "type": "spike", "x": 47500 },
 
-    { "type": "ground", "x": 48000, "width": 1000 },
+    { "type": "ground", "x": 48000, "width": 1400 },
     { "type": "spike", "x": 48200 },
     { "type": "spike", "x": 48550 },
 
