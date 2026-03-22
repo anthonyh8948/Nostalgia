@@ -71,14 +71,19 @@ export class AudioManager {
   }
 
   pausePlayback(): void {
-    if (!this.playing || !this.ctx) return;
-    const savedOffset = this.ctx.currentTime - this.startedAt;
-    this.stopSource();
-    this.pauseOffset = savedOffset;
+    if (!this.ctx) return;
+    if (this.playing) {
+      this.pauseOffset = Math.max(0, this.ctx.currentTime - this.startedAt);
+      this.stopSource();
+    }
+    this.ctx.suspend();
   }
 
   resumePlayback(): void {
-    this.play();
+    if (!this.ctx) return;
+    this.ctx.resume().then(() => {
+      if (this.pauseOffset > 0) this.play();
+    });
   }
 
   playCollectSound(): void {
