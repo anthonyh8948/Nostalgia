@@ -179,11 +179,11 @@
     { "type": "spike", "x": 47200 },
     { "type": "spike", "x": 47500 },
 
-    { "type": "ground", "x": 48000, "width": 1400 },
+    { "type": "ground", "x": 48000, "width": 1000 },
     { "type": "spike", "x": 48200 },
     { "type": "spike", "x": 48550 },
 
-    { "type": "platform", "x": 49400, "y": 65, "width": 200 },
+    { "type": "platform", "x": 49280, "y": 65, "width": 200 },
     { "type": "platform", "x": 49680, "y": 130, "width": 200 },
     { "type": "platform", "x": 49960, "y": 195, "width": 200 },
     { "type": "platform", "x": 50240, "y": 255, "width": 200 },
