@@ -531,129 +531,168 @@ function PasscodeModal({
   passcodeError: boolean;
   onSubmit: () => void;
 }) {
+  const [showRequest, setShowRequest] = useState(false);
+  const [reqName, setReqName] = useState("");
+  const [reqContact, setReqContact] = useState("");
+  const [reqSent, setReqSent] = useState(false);
+  const [reqLoading, setReqLoading] = useState(false);
+
+  const sendRequest = async () => {
+    if (!reqName.trim() || !reqContact.trim()) return;
+    setReqLoading(true);
+    try {
+      await fetch("/api/request-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: reqName.trim(), contact: reqContact.trim() }),
+      });
+      setReqSent(true);
+    } finally {
+      setReqLoading(false);
+    }
+  };
+
+  const cardStyle: React.CSSProperties = {
+    width: "300px",
+    padding: "36px 28px",
+    borderRadius: "20px",
+    background: "#0e0018",
+    border: "1px solid rgba(255,20,147,0.25)",
+    boxShadow: "0 0 60px rgba(255,20,147,0.12), 0 24px 60px rgba(0,0,0,0.7)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "18px",
+  };
+
+  const inputStyle = (hasError?: boolean): React.CSSProperties => ({
+    width: "100%",
+    padding: "12px 16px",
+    background: "rgba(255,255,255,0.05)",
+    border: `1px solid ${hasError ? "rgba(255,60,60,0.6)" : "rgba(255,255,255,0.12)"}`,
+    borderRadius: "12px",
+    color: "#fff",
+    fontSize: "15px",
+    outline: "none",
+    boxSizing: "border-box",
+  });
+
   return (
     <div
       onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 50,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "rgba(0,0,0,0.80)",
-        backdropFilter: "blur(6px)",
-      }}
+      style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.80)", backdropFilter: "blur(6px)" }}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "300px",
-          padding: "36px 28px",
-          borderRadius: "20px",
-          background: "#0e0018",
-          border: "1px solid rgba(255,20,147,0.25)",
-          boxShadow: "0 0 60px rgba(255,20,147,0.12), 0 24px 60px rgba(0,0,0,0.7)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "20px",
-        }}
-      >
-        {/* Header */}
-        <div style={{ textAlign: "center" }}>
-          <p style={{ fontSize: "10px", letterSpacing: "0.35em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", margin: 0 }}>
-            72 Hours in Vegas
-          </p>
-          <h2 style={{ fontSize: "18px", fontWeight: "bold", color: "#fff", margin: "8px 0 0", letterSpacing: "0.05em" }}>
-            Enter Passcode
-          </h2>
-        </div>
+      <div onClick={(e) => e.stopPropagation()} style={cardStyle}>
 
-        {/* Input */}
-        <input
-          autoFocus
-          type="password"
-          value={passcodeInput}
-          onChange={(e) => setPasscodeInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && onSubmit()}
-          placeholder="••••"
-          maxLength={20}
-          style={{
-            width: "100%",
-            padding: "13px 16px",
-            background: "rgba(255,255,255,0.05)",
-            border: `1px solid ${passcodeError ? "rgba(255,60,60,0.6)" : "rgba(255,255,255,0.12)"}`,
-            borderRadius: "12px",
-            color: "#fff",
-            fontSize: "20px",
-            letterSpacing: "0.3em",
-            textAlign: "center",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
-        />
+        {/* ── Passcode view ── */}
+        {!showRequest && (
+          <>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ fontSize: "10px", letterSpacing: "0.35em", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", margin: 0 }}>
+                72 Hours in Vegas
+              </p>
+              <h2 style={{ fontSize: "18px", fontWeight: "bold", color: "#fff", margin: "8px 0 0" }}>
+                Enter Passcode
+              </h2>
+            </div>
 
-        {/* Error message */}
-        {passcodeError && (
-          <p style={{ margin: 0, fontSize: "12px", color: "rgba(255,80,80,0.9)", letterSpacing: "0.05em" }}>
-            Incorrect passcode
-          </p>
+            <input
+              autoFocus
+              type="password"
+              value={passcodeInput}
+              onChange={(e) => setPasscodeInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onSubmit()}
+              placeholder="••••"
+              maxLength={20}
+              style={{ ...inputStyle(passcodeError), fontSize: "20px", letterSpacing: "0.3em", textAlign: "center" }}
+            />
+
+            {passcodeError && (
+              <p style={{ margin: 0, fontSize: "12px", color: "rgba(255,80,80,0.9)" }}>
+                Incorrect passcode
+              </p>
+            )}
+
+            <button
+              onClick={onSubmit}
+              style={{ width: "100%", padding: "13px", background: "#ff1493", border: "none", borderRadius: "12px", color: "#000", fontWeight: "bold", fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", cursor: "pointer", boxShadow: "0 0 20px rgba(255,20,147,0.4)" }}
+            >
+              Unlock
+            </button>
+
+            {passcodeError && (
+              <button
+                onClick={() => setShowRequest(true)}
+                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.45)", fontSize: "11px", letterSpacing: "0.1em", textDecoration: "underline", cursor: "pointer", padding: 0 }}
+              >
+                Request Password
+              </button>
+            )}
+
+            <button onClick={onClose} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.25)", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer", padding: 0 }}>
+              Cancel
+            </button>
+          </>
         )}
 
-        {/* Submit */}
-        <button
-          onClick={onSubmit}
-          style={{
-            width: "100%",
-            padding: "13px",
-            background: "#ff1493",
-            border: "none",
-            borderRadius: "12px",
-            color: "#000",
-            fontWeight: "bold",
-            fontSize: "12px",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            cursor: "pointer",
-            boxShadow: "0 0 20px rgba(255,20,147,0.4)",
-          }}
-        >
-          Unlock
-        </button>
+        {/* ── Request form ── */}
+        {showRequest && !reqSent && (
+          <>
+            <div style={{ textAlign: "center" }}>
+              <h2 style={{ fontSize: "17px", fontWeight: "bold", color: "#fff", margin: 0 }}>Request Password</h2>
+              <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", margin: "8px 0 0", lineHeight: 1.5 }}>
+                Leave your info and I&apos;ll reach out with the passcode.
+              </p>
+            </div>
 
-        {/* Request Password — shown after a wrong attempt */}
-        {passcodeError && (
-          <a
-            href="mailto:tony@tonyhaasmusic.com"
-            style={{
-              fontSize: "11px",
-              color: "rgba(255,255,255,0.45)",
-              letterSpacing: "0.1em",
-              textDecoration: "underline",
-              cursor: "pointer",
-            }}
-          >
-            Request Password
-          </a>
+            <input
+              autoFocus
+              type="text"
+              value={reqName}
+              onChange={(e) => setReqName(e.target.value)}
+              placeholder="Your name"
+              style={inputStyle()}
+            />
+
+            <input
+              type="text"
+              value={reqContact}
+              onChange={(e) => setReqContact(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendRequest()}
+              placeholder="Email or Instagram handle"
+              style={inputStyle()}
+            />
+
+            <button
+              onClick={sendRequest}
+              disabled={reqLoading || !reqName.trim() || !reqContact.trim()}
+              style={{ width: "100%", padding: "13px", background: reqLoading || !reqName.trim() || !reqContact.trim() ? "rgba(255,20,147,0.4)" : "#ff1493", border: "none", borderRadius: "12px", color: "#000", fontWeight: "bold", fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", cursor: reqLoading ? "wait" : "pointer" }}
+            >
+              {reqLoading ? "Sending…" : "Send Request"}
+            </button>
+
+            <button onClick={() => setShowRequest(false)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.25)", fontSize: "11px", letterSpacing: "0.15em", textTransform: "uppercase", cursor: "pointer", padding: 0 }}>
+              Back
+            </button>
+          </>
         )}
 
-        {/* Cancel */}
-        <button
-          onClick={onClose}
-          style={{
-            background: "none",
-            border: "none",
-            color: "rgba(255,255,255,0.3)",
-            fontSize: "11px",
-            letterSpacing: "0.15em",
-            textTransform: "uppercase",
-            cursor: "pointer",
-            padding: 0,
-          }}
-        >
-          Cancel
-        </button>
+        {/* ── Success ── */}
+        {reqSent && (
+          <>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: "36px", marginBottom: "12px" }}>✓</div>
+              <h2 style={{ fontSize: "17px", fontWeight: "bold", color: "#fff", margin: 0 }}>Request Sent</h2>
+              <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.4)", margin: "8px 0 0", lineHeight: 1.5 }}>
+                I&apos;ll reach out soon with the passcode.
+              </p>
+            </div>
+            <button onClick={onClose} style={{ width: "100%", padding: "13px", background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: "12px", color: "#fff", fontWeight: "bold", fontSize: "12px", letterSpacing: "0.2em", textTransform: "uppercase", cursor: "pointer" }}>
+              Close
+            </button>
+          </>
+        )}
+
       </div>
     </div>
   );
