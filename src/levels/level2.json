@@ -335,25 +335,25 @@
     { "type": "spike", "x": 113000 },
     { "type": "spike", "x": 113500 },
 
-    { "type": "platform", "x": 114200, "y": 0, "width": 2400 },
+    { "type": "ground", "x": 114200, "width": 2400 },
     { "type": "spike", "x": 114600 },
     { "type": "spike", "x": 115000 },
     { "type": "spike", "x": 115600 },
     { "type": "spike", "x": 116100 },
 
-    { "type": "platform", "x": 116800, "y": 0, "width": 2400 },
+    { "type": "ground", "x": 116800, "width": 2400 },
     { "type": "spike", "x": 117200 },
     { "type": "spike", "x": 117600 },
     { "type": "spike", "x": 118200 },
     { "type": "spike", "x": 118700 },
 
-    { "type": "platform", "x": 119400, "y": 0, "width": 2400 },
+    { "type": "ground", "x": 119400, "width": 2400 },
     { "type": "spike", "x": 119800 },
     { "type": "spike", "x": 120200 },
     { "type": "spike", "x": 120800 },
     { "type": "spike", "x": 121300 },
 
-    { "type": "platform", "x": 122000, "y": 0, "width": 1000 },
+    { "type": "ground", "x": 122000, "width": 1000 },
 
     { "type": "coaster", "x": 122760 }
   ]
