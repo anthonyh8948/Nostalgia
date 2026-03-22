@@ -430,7 +430,7 @@ export class Renderer {
     this.ctx.textBaseline = "alphabetic";
   }
 
-  drawEntities(camera: Camera, entities: LevelEntity[]): void {
+  drawEntities(camera: Camera, entities: LevelEntity[], checkpointWorldX?: number | null): void {
     for (const entity of entities) {
       const screenX = camera.worldToScreen(entity.x);
 
@@ -456,6 +456,9 @@ export class Renderer {
           break;
         case "peach":
           this.drawPeach(screenX, entity.y ?? 20);
+          break;
+        case "checkpoint":
+          this.drawCheckpoint(screenX, checkpointWorldX != null);
           break;
       }
     }
@@ -485,6 +488,37 @@ export class Renderer {
     this.ctx.fillStyle = this.theme.deathFlash;
     this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     this.ctx.globalAlpha = 1;
+  }
+
+  drawCheckpoint(screenX: number, activated: boolean): void {
+    const ctx = this.ctx;
+    const poleX = screenX + 4;
+    const poleTop = GROUND_Y - 85;
+    const color = activated ? this.theme.groundLine : "rgba(255,255,255,0.35)";
+
+    // Pole
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = activated ? this.theme.groundLine : "transparent";
+    ctx.shadowBlur = activated ? 10 : 0;
+    ctx.beginPath();
+    ctx.moveTo(poleX, GROUND_Y);
+    ctx.lineTo(poleX, poleTop);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Waving flag
+    const wave = Math.sin(Date.now() * 0.004) * 4;
+    ctx.fillStyle = activated ? this.theme.groundLine : "rgba(255,255,255,0.25)";
+    ctx.shadowColor = activated ? this.theme.groundLine : "transparent";
+    ctx.shadowBlur = activated ? 8 : 0;
+    ctx.beginPath();
+    ctx.moveTo(poleX, poleTop);
+    ctx.lineTo(poleX + 28 + wave, poleTop + 10 + wave * 0.3);
+    ctx.lineTo(poleX + 24 + wave * 0.5, poleTop + 22);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
   }
 
   drawCoasterLaunch(timer: number, duration: number): void {

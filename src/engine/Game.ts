@@ -68,6 +68,9 @@ export class Game {
   private boxAnimTimer = 0;
   private boxAnimDuration = 60; // 1 second at 60fps
 
+  // Checkpoint
+  private checkpointWorldX: number | null = null;
+
   // Kingda Ka coaster animation state
   private coasterTimer = 0;
   private readonly coasterLaunchDuration = 300; // 5s
@@ -137,6 +140,7 @@ export class Game {
     });
     this.totalPeaches = ordinal;
     this.collectedPeaches.clear();
+    this.checkpointWorldX = null;
   }
 
   private update(_dt: number): void {
@@ -208,6 +212,10 @@ export class Game {
       if (this.deathPauseTimer === 0) {
         this.player.reset();
         this.camera.reset();
+        if (this.checkpointWorldX !== null) {
+          this.player.worldX = this.checkpointWorldX;
+          this.camera.update(this.player.worldX);
+        }
         this.particles.clear();
         this.physics.resetCoyote();
         this.jumpBufferTimer = 0;
@@ -285,6 +293,14 @@ export class Game {
             this.enterBox();
             return;
           }
+        }
+        continue;
+      }
+
+      // Checkpoint — world-space, one-time activation
+      if (entity.type === "checkpoint") {
+        if (this.checkpointWorldX === null && this.player.worldX >= entity.x) {
+          this.checkpointWorldX = entity.x;
         }
         continue;
       }
@@ -367,7 +383,7 @@ export class Game {
       : this.entities.filter(
           (e, i) => (e.type !== "peach" || !this.collectedPeaches.has(i)) && e.type !== "coaster"
         );
-    this.renderer.drawEntities(this.camera, visibleEntities);
+    this.renderer.drawEntities(this.camera, visibleEntities, this.checkpointWorldX);
 
     if (this.state === "entering_pipe") {
       // Draw the pipe animation — player shrinking into pipe
