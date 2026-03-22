@@ -70,6 +70,7 @@ export class Game {
 
   // Checkpoint
   private checkpointWorldX: number | null = null;
+  private startWorldX = 0;
 
   // Kingda Ka coaster animation state
   private coasterTimer = 0;
@@ -141,6 +142,7 @@ export class Game {
     this.totalPeaches = ordinal;
     this.collectedPeaches.clear();
     this.checkpointWorldX = null;
+    this.startWorldX = 0;
   }
 
   private update(_dt: number): void {
@@ -215,6 +217,8 @@ export class Game {
         if (this.checkpointWorldX !== null) {
           this.player.worldX = this.checkpointWorldX;
           this.camera.update(this.player.worldX);
+          const audioTime = (this.checkpointWorldX - this.startWorldX) / (this.scrollSpeed * 60);
+          this.audio.seekTo(audioTime);
         }
         this.particles.clear();
         this.physics.resetCoyote();
@@ -227,6 +231,7 @@ export class Game {
     if (this.state === "idle") {
       if (this.input.consumePress()) {
         this.state = "playing";
+        if (this.startWorldX === 0) this.startWorldX = this.player.worldX;
         this.audio.play();
         this.jumpBufferTimer = this.JUMP_BUFFER_FRAMES; // first tap starts AND queues a jump
         this.callbacks.onIdleEnd?.();
@@ -477,6 +482,7 @@ export class Game {
     const skip = typeof localStorage !== "undefined" && localStorage.getItem("nostalgia_skip_prompt");
     if (skip) {
       this.state = "playing";
+      if (this.startWorldX === 0) this.startWorldX = this.player.worldX;
       this.audio.play();
       return;
     }

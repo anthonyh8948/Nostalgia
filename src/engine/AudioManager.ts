@@ -138,6 +138,10 @@ export class AudioManager {
     osc2.stop(now + 0.14);
   }
 
+  seekTo(seconds: number): void {
+    this.pauseOffset = Math.max(0, seconds);
+  }
+
   isLoaded(): boolean {
     return this.buffer !== null;
   }
