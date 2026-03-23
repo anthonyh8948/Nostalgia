@@ -120,17 +120,27 @@ export default function MenuPage() {
           top: "16px",
           right: "16px",
           zIndex: 20,
-          background: "none",
-          border: "none",
-          fontSize: "10px",
-          letterSpacing: "0.25em",
-          color: "rgba(255,255,255,0.2)",
+          background: "rgba(255,255,255,0.06)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: "8px",
+          padding: "7px 14px",
+          fontSize: "11px",
+          letterSpacing: "0.2em",
+          color: "rgba(255,255,255,0.6)",
           textTransform: "uppercase",
           cursor: "pointer",
-          transition: "color 0.2s",
+          transition: "all 0.2s",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.55)")}
-        onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.2)")}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = "#fff";
+          e.currentTarget.style.background = "rgba(255,255,255,0.12)";
+          e.currentTarget.style.borderColor = "rgba(255,255,255,0.3)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = "rgba(255,255,255,0.6)";
+          e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+          e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
+        }}
       >
         Log Out
       </button>
