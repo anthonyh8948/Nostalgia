@@ -109,6 +109,32 @@ export default function MenuPage() {
   return (
     <>
       <BackButton href="/" />
+
+      <button
+        onClick={() => {
+          localStorage.removeItem("nostalgia_user");
+          router.replace("/signup");
+        }}
+        style={{
+          position: "fixed",
+          top: "16px",
+          right: "16px",
+          zIndex: 20,
+          background: "none",
+          border: "none",
+          fontSize: "10px",
+          letterSpacing: "0.25em",
+          color: "rgba(255,255,255,0.2)",
+          textTransform: "uppercase",
+          cursor: "pointer",
+          transition: "color 0.2s",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.55)")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.2)")}
+      >
+        Log Out
+      </button>
+
       {/* Lock pulse animation */}
       <style>{`
         @keyframes lockPulse {
@@ -432,27 +458,6 @@ export default function MenuPage() {
           swipe to explore
         </p>
 
-        <button
-          onClick={() => {
-            localStorage.removeItem("nostalgia_user");
-            router.replace("/signup");
-          }}
-          style={{
-            marginTop: "28px",
-            background: "none",
-            border: "none",
-            fontSize: "10px",
-            letterSpacing: "0.25em",
-            color: "rgba(255,255,255,0.2)",
-            textTransform: "uppercase",
-            cursor: "pointer",
-            transition: "color 0.2s",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.55)")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.2)")}
-        >
-          Log Out
-        </button>
       </div>
 
       {/* Passcode modal */}
